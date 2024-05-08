@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class OverallStatistics(models.model):
+class OverallStatistics(models.Model):
     total_bets = models.IntegerField()
     correct_bets = models.IntegerField()
     incorrect_bets = models.IntegerField()
@@ -15,14 +15,14 @@ class OverallStatistics(models.model):
     profit_loss = models.FloatField()
 
 
-class Team(models.model):
+class Team(models.Model):
     team_name = models.CharField(max_length=100)
     league = models.CharField(max_length=100, null=True)
 
 
-class Match(models.model):
-    home_team = models.ForeignKey(Team, on_delete=models.CASCADE)
-    away_team = models.ForeignKey(Team, on_delete=models.CASCADE)
+class Match(models.Model):
+    home_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='home_matches')
+    away_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='away_matches')
 
     date = models.DateTimeField(null=True)
     time = models.TimeField(null=True)
@@ -40,7 +40,7 @@ class Match(models.model):
     away_team_goals = models.IntegerField(null=True)
 
 
-class Bet(models.model):
+class Bet(models.Model):
     bet_type = models.CharField(max_length=100)
     bet_stake = models.FloatField(null=True)
     bet_return = models.FloatField(null=True)
