@@ -4,4 +4,11 @@
 
     <h1>Hello World</h1>
 
+    {% for match in matches %}
+        <div>
+            <p>{{ match.home_team }}</p>
+            <p>{{ match.away_team }}</p>
+        </div>
+    {% endfor %}
+
 {% endblock %}
