@@ -2,12 +2,55 @@
 
 {% block content %}
 
-    <h1>Hello World</h1>
+    {% for bet in bets %}
+        <div class="match-container">
+            <div>
+                <p>{{ bet.match.date }}</p>
+            </div>
 
-    {% for match in matches %}
-        <div>
-            <p>{{ match.home_team }}</p>
-            <p>{{ match.away_team }}</p>
+            <div class="home-team">
+                <p>{{ bet.match.home_team }}</p>
+            </div>
+
+            <div class="percentage">
+                <p>{{ bet.match.home_win_percentage }}</p>
+            </div>
+
+            <div class="percentage">
+                <p>{{ bet.match.away_win_percentage }}</p>
+            </div>
+
+            <div class="away_team">
+                <p>{{ bet.match.away_team }}</p>
+            </div>
+
+            <div>
+                <p>{{ bet.get_bet_type_display }}</p>
+            </div>
+
+            <div>
+                <p>{{ bet.bet_odds_numerator }}/{{ bet.bet_odds_denominator }}</p>
+            </div>
+
+            <div>
+                <p>{{ bet.bet_decimal_odds }}</p>
+            </div>
+
+            <div>
+                <p>£{{ bet.bet_stake }}</p>
+            </div>
+
+            <div>
+                <p>£{{ bet.bet_return }}</p>
+            </div>
+
+            <div>
+                <p>{{ bet.bet_win }}</p>
+            </div>
+
+            <div>
+                <p>£{{ pot }}</p>
+            </div>
         </div>
     {% endfor %}
 

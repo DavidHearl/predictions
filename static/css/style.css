@@ -1,4 +1,28 @@
-* {
-    background: black;
+body {
+    font-family: 'Roboto', sans-serif;
+    background: rgb(13,20,28);
+    font-size: 0.9rem;
     color: white;
+}
+
+.match-container {
+    display: flex;
+    align-items: center;
+    background: rgb(31, 41, 55);
+    padding: 8px;
+    margin: 8px;
+    border-radius: 12px;
+}
+
+.match-container > div {
+    /* border: 1px solid white; */
+}
+
+.home-team,
+.away-team {
+    width: 12%;
+}
+
+.percentage {
+    width: 2%;
 }
