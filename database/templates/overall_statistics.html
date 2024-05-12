@@ -1,57 +1,41 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
-    {% for bet in bets %}
-        <div class="match-container">
-            <div>
-                <p>{{ bet.match.date }}</p>
-            </div>
-
-            <div class="home-team">
-                <p>{{ bet.match.home_team }}</p>
-            </div>
-
-            <div class="percentage">
-                <p>{{ bet.match.home_win_percentage }}</p>
-            </div>
-
-            <div class="percentage">
-                <p>{{ bet.match.away_win_percentage }}</p>
-            </div>
-
-            <div class="away_team">
-                <p>{{ bet.match.away_team }}</p>
-            </div>
-
-            <div>
-                <p>{{ bet.get_bet_type_display }}</p>
-            </div>
-
-            <div>
-                <p>{{ bet.bet_odds_numerator }}/{{ bet.bet_odds_denominator }}</p>
-            </div>
-
-            <div>
-                <p>{{ bet.bet_decimal_odds }}</p>
-            </div>
-
-            <div>
-                <p>£{{ bet.bet_stake }}</p>
-            </div>
-
-            <div>
-                <p>£{{ bet.bet_return }}</p>
-            </div>
-
-            <div>
-                <p>{{ bet.bet_win }}</p>
-            </div>
-
-            <div>
-                <p>£{{ pot }}</p>
-            </div>
-        </div>
-    {% endfor %}
-
+    <div class="container">
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Home Team</th>
+                <th>Home Win %</th>
+                <th>Away Win %</th>
+                <th>Away Team</th>
+                <th>Bet Type</th>
+                <th>Avg Goals</th>
+                <th>Bet Odds</th>
+                <th>Decimal</th>
+                <th>Bet Stake</th>
+                <th>Bet Return</th>
+                <th>Bet Win</th>
+                <th>Pot</th>
+            </tr>
+            {% for bet in bets %}
+                <tr>
+                    <td>{{ bet.match.date }}</td>
+                    <td>{{ bet.match.home_team }}</td>
+                    <td class="center-text">{{ bet.match.home_win_percentage }}</td>
+                    <td class="center-text">{{ bet.match.away_win_percentage }}</td>
+                    <td>{{ bet.match.away_team }}</td>
+                    <td class="center-text">{{ bet.get_bet_type_display }}</td>
+                    <td class="center-text">{{ bet.match.average_goals }}</td>
+                    <td class="center-text">{{ bet.bet_odds_numerator }}/{{ bet.bet_odds_denominator }}</td>
+                    <td class="center-text">{{ bet.bet_decimal_odds }}</td>
+                    <td class="center-text">£{{ bet.bet_stake }}</td>
+                    <td class="center-text">£{{ bet.bet_return }}</td>
+                    <td class="center-text">{{ bet.bet_win }}</td>
+                    <td class="center-text">£{{ pot }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+    
 {% endblock %}

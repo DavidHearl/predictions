@@ -7,7 +7,7 @@ class TeamAdmin(admin.ModelAdmin):
 
 
 class MatchAdmin(admin.ModelAdmin):
-    list_display = ('home_team', 'away_team', 'date', 'home_win_percentage', 'draw_percentage', 'away_win_percentage', 'expected_goals', 'expected_home_team_goals', 'expected_away_team_goals', 'home_team_goals', 'away_team_goals')
+    list_display = ('home_team', 'away_team', 'date', 'home_win_percentage', 'draw_percentage', 'away_win_percentage', 'average_goals', 'expected_home_team_goals', 'expected_away_team_goals', 'home_team_goals', 'away_team_goals')
 
 
 class BetAdmin(admin.ModelAdmin):

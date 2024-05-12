@@ -19,7 +19,7 @@ class Match(models.Model):
     draw_percentage = models.IntegerField(blank=True, null=True)
     away_win_percentage = models.IntegerField(blank=True, null=True)
     
-    expected_goals = models.FloatField(blank=True, null=True)
+    average_goals = models.FloatField(blank=True, null=True)
     
     expected_home_team_goals = models.FloatField(blank=True, null=True)
     expected_away_team_goals = models.FloatField(blank=True, null=True)

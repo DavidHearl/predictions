@@ -1,3 +1,8 @@
+* {
+    padding: 0;
+    margin: 0;
+}
+
 body {
     font-family: 'Roboto', sans-serif;
     background: rgb(13,20,28);
@@ -5,24 +10,30 @@ body {
     color: white;
 }
 
-.match-container {
+.container {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    background: rgb(31, 41, 55);
-    padding: 8px;
-    margin: 8px;
-    border-radius: 12px;
+    justify-content: center;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
-.match-container > div {
-    /* border: 1px solid white; */
+table {
+    margin-top: 64px;
 }
 
-.home-team,
-.away-team {
-    width: 12%;
+td, th {
+    padding: 2px 12px;
 }
 
-.percentage {
-    width: 2%;
+.center-text {
+    text-align: center;
+}
+
+hr {
+    width: 98%;
+    margin: 4px;
+    border-color: 1px solid rgba(255, 255, 255, 0.5);
+    background-color: 1px solid rgba(255, 255, 255, 0.5);
 }
