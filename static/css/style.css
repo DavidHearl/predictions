@@ -31,9 +31,41 @@ td, th {
     text-align: center;
 }
 
+.center-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4px;
+}
+
 hr {
     width: 98%;
     margin: 4px;
     border-color: 1px solid rgba(255, 255, 255, 0.5);
     background-color: 1px solid rgba(255, 255, 255, 0.5);
 }
+
+.red {
+    color: rgb(214, 28, 78);
+}
+
+.green {
+    color: rgb(17, 184, 134);
+}
+
+.check-box-true {
+    border: 1px solid white;
+    width: 11px;
+    height: 11px;
+    background: rgb(17, 184, 134);
+    border-radius: 6px;
+}
+
+.check-box-false {
+    border: 1px solid white;
+    width: 11px;
+    height: 11px;
+    background: rgb(214, 28, 78);
+    border-radius: 6px;
+}
+

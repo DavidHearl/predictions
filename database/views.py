@@ -22,6 +22,8 @@ def index(request):
         else:
             pot -= bet.bet_stake
 
+    
+
     context = {
         'teams': teams,
         'matches': matches,

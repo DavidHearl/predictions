@@ -19,7 +19,7 @@
                 <th>Pot</th>
             </tr>
             {% for bet in bets %}
-                <tr>
+                <tr class="{% if bet.bet_win %}green{% else %}red{% endif %}">
                     <td>{{ bet.match.date }}</td>
                     <td>{{ bet.match.home_team }}</td>
                     <td class="center-text">{{ bet.match.home_win_percentage }}</td>
@@ -31,7 +31,13 @@
                     <td class="center-text">{{ bet.bet_decimal_odds }}</td>
                     <td class="center-text">£{{ bet.bet_stake }}</td>
                     <td class="center-text">£{{ bet.bet_return }}</td>
-                    <td class="center-text">{{ bet.bet_win }}</td>
+                    <td class="center-box">
+                        {% if bet.bet_win %}
+                            <div class="check-box-true"></div>
+                        {% else %}
+                            <div class="check-box-false"></div>
+                        {% endif %}
+                    </td>
                     <td class="center-text">£{{ pot }}</td>
                 </tr>
             {% endfor %}
