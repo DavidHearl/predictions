@@ -2,6 +2,43 @@
 
 {% block content %}
     <div class="container">
+        <!-- Add match -->
+        <form method="post">
+            {% csrf_token %}
+            <div>{{ match_form.home_team }}</div>
+            <div>{{ match_form.away_team }}</div>
+            <div>{{ match_form.date }}</div>
+            <div>{{ match_form.home_win_percentage }}</div>
+            <div>{{ match_form.draw_percentage }}</div>
+            <div>{{ match_form.away_win_percentage }}</div>
+            <div>{{ match_form.average_goals }}</div>
+            <div>{{ match_form.expected_home_team_goals }}</div>
+            <div>{{ match_form.expected_away_team_goals }}</div>
+            <div>{{ match_form.home_team_goals }}</div>
+            <div>{{ match_form.away_team_goals }}</div>
+            <button type="submit">Submit</button>
+        </form>
+
+        <form method="post">
+            {% csrf_token %}
+            <div>{{ team_form.team_name }}</div>
+            <div>{{ team_form.league }}</div>
+            <button type="submit">Submit</button>
+        </form>
+
+        <form method="post">
+            {% csrf_token %}
+            <div>{{ bet_form.match }}</div>
+            <div>{{ bet_form.bet_type }}</div>
+            <div>{{ bet_form.bet_stake }}</div>
+            <div>{{ bet_form.bet_win }}</div>
+            <div>{{ bet_form.bet_odds_numerator }}</div>
+            <div>{{ bet_form.bet_odds_denominator }}</div>
+            <div>{{ bet_form.bet_return }}</div>
+            <div>{{ bet_form.bet_decimal_odds }}</div>
+            <button type="submit">Submit</button>
+        </form>
+
         <table>
             <tr>
                 <th>Date</th>
