@@ -1,19 +1,21 @@
 from django.contrib import admin
-from .models import Team, Match, Bet
+from .models import *
 
+
+class SeasonAdmin(admin.ModelAdmin):
+    list_display = ('season',)  # Remove the extra comma
+
+class LeagueAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+
+class CompetitionAdmin(admin.ModelAdmin):
+    list_display = ('league', 'season')
 
 class TeamAdmin(admin.ModelAdmin):
-    list_display = ('team_name', 'league')
+    list_display = ('team_name', 'league', 'season')
 
 
-class MatchAdmin(admin.ModelAdmin):
-    list_display = ('home_team', 'away_team', 'date', 'home_win_percentage', 'draw_percentage', 'away_win_percentage', 'average_goals', 'expected_home_team_goals', 'expected_away_team_goals', 'home_team_goals', 'away_team_goals')
-
-
-class BetAdmin(admin.ModelAdmin):
-    list_display = ('match', 'bet_type', 'bet_stake', 'bet_return', 'bet_win', 'bet_odds_numerator', 'bet_odds_denominator', 'bet_decimal_odds')
-
-
+admin.site.register(Season, SeasonAdmin)
+admin.site.register(League, LeagueAdmin)
+admin.site.register(Competition, CompetitionAdmin)
 admin.site.register(Team, TeamAdmin)
-admin.site.register(Match, MatchAdmin)
-admin.site.register(Bet, BetAdmin)
