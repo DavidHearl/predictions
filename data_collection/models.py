@@ -4,17 +4,25 @@ from django.db import models
 class Season(models.Model):
     name = models.CharField(max_length=20)
 
+    def __str__(self):
+        return self.name
+
 
 class League(models.Model):
     name = models.CharField(max_length=100)
     country = models.CharField(max_length=50)
+    league_id = models.PositiveIntegerField()
+
+    def __str__(self):
+        return self.name
 
 
 class Team(models.Model):
     name = models.CharField(max_length=100)
+    unqiue_code = models.CharField(max_length=100, null=True)
 
 
-class TeamSeason(models.Model):
+class ClubSeason(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     league = models.ForeignKey(League, on_delete=models.CASCADE)
@@ -26,6 +34,7 @@ class Player(models.Model):
     position = models.CharField(max_length=20)
     birth_date = models.DateField()
     nationality = models.CharField(max_length=50)
+    unique_code = models.CharField(max_length=100, null=True)
 
 
 class Match(models.Model):
