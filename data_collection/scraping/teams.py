@@ -1,8 +1,14 @@
 import requests
+import re
 from bs4 import BeautifulSoup
 from collections import Counter
 from data_collection.models import *
+import time
 
+
+# Define Global Variables
+SLEEP_TIME = 2 # Max requests 20 times per min
+        
 
 def build_fbref_urls():
     """
@@ -19,48 +25,56 @@ def build_fbref_urls():
             # Replaces spaces in the league name with hyphens
             league_slug = league.name.replace(" ", "-")
             season_str = season.name
-            
-            # Note: You should ideally have fbref_id as a field in your League model
-            # This is a fallback assuming Premier League has ID 9
-            if hasattr(league, 'fbref_id'):
-                league_id = league.fbref_id
-            else:
-                # Hardcoded league ID - consider adding fbref_id field to League model
-                league_id = 9  # This assumes Premier League, might not work for other leagues
+            league_id = league.league_id
             
             url = f"https://fbref.com/en/comps/{league_id}/{season_str}/{season_str}-{league_slug}-Stats"
             urls.append(url)
-    
+
     return urls
 
 
+def get_teams():
+    """
+    Builds all FBref season/league URLs, scrapes each for team links,
+    deduplicates them, and returns only links that contain a season format (YYYY-YYYY).
+    """
+    # Retrieve URLs from the previous function
+    urls = build_fbref_urls()
 
-# def get_teams(url="https://fbref.com/en/comps/9/2023-2024/2023-2024-Premier-League-Stats"):
-#     print(f"Scraping teams from {url}")
+    all_team_links = []
 
-#     response = requests.get(url)
-#     soup = BeautifulSoup(response.content, "html.parser")
+    for url in urls:
+        print(f"Scraping teams from {url}")
+        try:
+            response = requests.get(url)
+            soup = BeautifulSoup(response.content, "html.parser")
 
-#     team_links = []
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                if href.startswith("/en/squads/") and "Stats" in href:
+                    full_url = f"https://fbref.com{href}"
+                    all_team_links.append(full_url)
+        except Exception as e:
+            print(f"Failed to scrape {url}: {e}")
 
-#     for a in soup.find_all("a", href=True):
-#         href = a["href"]
-#         if href.startswith("/en/squads/") and "Stats" in href:
-#             full_url = f"https://fbref.com{href}"
-#             team_links.append(full_url)
+        time.sleep(SLEEP_TIME)
+        
+    # Filter for links containing a season format (YYYY-YYYY)
+    season_links = [link for link in all_team_links if re.search(r"/\d{4}-\d{4}/", link)]
 
-#     print(f"\n Found {len(team_links)} raw team links.")
+    # Deduplicate links
+    unique_links = list(set(season_links))
+    parsed_teams = []
 
-#     # Deduplication
-#     link_counts = Counter(team_links)
-#     duplicates = {url: count for url, count in link_counts.items() if count > 1}
+    for link in unique_links:
+        parts = link.strip('/').split('/')
+        if len(parts) >= 8 and parts[4] == 'squads':
+            team_id = parts[5]
+            team_name = parts[7].replace('-Stats', '')
+            parsed_teams.append([team_id, team_name])
 
-#     if duplicates:
-#         print("\n Duplicate links:")
-#         for url, count in duplicates.items():
-#             print(f" - {url} ({count} times)")
+    
+    for item in parsed_teams:
+        print(item)
 
-#     unique_links = list(set(team_links))
-#     print(f"\n {len(unique_links)} unique team links.")
-
-#     return unique_links
+    return parsed_teams
