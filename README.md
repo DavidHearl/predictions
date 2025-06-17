@@ -4,40 +4,53 @@ A Django-based application that uses historical match data to predict football o
 
 ---
 
+## Setup & Collect Data
+
+- Navigate to the directory
+
+``` 
+cd 'Documents/08 - Programming/GitHub/predictions' 
+cd 'C:\Users\David\iCloudDrive\Documents\08 - Programming\GitHub'
+```
+
+- Activate the virtual environment
+
+``` 
+source virtual_environment/bin/activate 
+```
+
+- Download all of the dependencies
+```
+pip install -r requirements.txt
+```
+
+- To collect the data run
+
+``` python3 manage.py scraping_fbref ```
+
 ## Define the model
 **Model here**
 
-## Project Steps
-1. Add some seasons to the database as a starting point
-```
-python3 manage.py shell
+## Project Stages
 
-from data_collection.models import Season
-season = Season.objects.create(name="2023-2024")
-```
-2. Add a league to the database
-```
-python3 manage.py shell
+- create_seasons(): # Utilities function (datacollect/utils/seasons.py)
+    - Create the seasons within a specified range and populate the *Season* model with:
+        - **name**: Season name, ie 2021-2022
 
-from data_collection.models import League
-league = League.objects.create(
-    name="Premier League",
-    country="England"
-)
-```
-3. Import packages
-```
-pip install requests beautifulsoup4
-pip install lxml
-pip freeze > requirements.txt
-```
+- build_fbref_urls():
+    - Use the season and the league to generate a list of urls which will be used to scrape the following...
 
-4. Create a function to get build the urls which will be used to scrape a list of the teams
-- build_fbref_urls()
-
-5. Create a function to get all the href links from a page
-- We want to filter out the urls that only occur once
-- We want to filter out the urls that do not have the season inside
+- populate_team_data():
+    - Get the unique code for all the teams
+    - Get the team name
+    - Get the season which the team is participating in e.g 2021-2022
+    - Populate the *Team* model with:
+        - **name**: The name of the team.
+        - **unique_code**: A unique identifier for the team.
+    - Populate the *ClubSeason* model with:
+        - **team**: Foreign Key for the name
+        - **season**: Season which they participated in
+        - **league**: League which they were in this season
 
 
 

@@ -7,7 +7,7 @@ import time
 
 
 # Define Global Variables
-SLEEP_TIME = 2 # Max requests 20 times per min
+SLEEP_TIME = 3.5 # Max requests 20 times per min
         
 
 def build_fbref_urls():
@@ -33,48 +33,79 @@ def build_fbref_urls():
     return urls
 
 
-def get_teams():
+def populate_team_data():
     """
-    Builds all FBref season/league URLs, scrapes each for team links,
-    deduplicates them, and returns only links that contain a season format (YYYY-YYYY).
+    Scrapes team IDs and names from each season-league page.
+    Inserts valid Team and ClubSeason records into the database.
+    Only first 20 valid team links per season are processed.
     """
-    # Retrieve URLs from the previous function
     urls = build_fbref_urls()
-
-    all_team_links = []
 
     for url in urls:
         print(f"Scraping teams from {url}")
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
             soup = BeautifulSoup(response.content, "html.parser")
 
+            # Extract season name from URL
+            season_match = re.search(r"/(\d{4}-\d{4})/", url)
+            if not season_match:
+                print(f"Could not extract season from URL: {url}")
+                continue
+            season_name = season_match.group(1)
+
+            try:
+                season_obj = Season.objects.get(name=season_name)
+            except Season.DoesNotExist:
+                print(f"Season {season_name} not found in database.")
+                continue
+
+            # Extract league object
+            league_obj = None
+            for league in League.objects.all():
+                if league.name.replace(" ", "-") in url:
+                    league_obj = league
+                    break
+            if not league_obj:
+                print(f"League not found for URL: {url}")
+                continue
+
+            team_data = []
+            seen_ids = set()
+
+            # Parse up to 20 unique team links
             for a in soup.find_all("a", href=True):
+                if len(team_data) >= 20:
+                    break
+
                 href = a["href"]
                 if href.startswith("/en/squads/") and "Stats" in href:
-                    full_url = f"https://fbref.com{href}"
-                    all_team_links.append(full_url)
+                    parts = href.strip("/").split("/")
+                    if len(parts) >= 5:
+                        team_id = parts[2]
+                        team_name = parts[4].replace("-Stats", "").replace("-", " ")
+
+                        if team_id in seen_ids:
+                            continue
+
+                        seen_ids.add(team_id)
+                        team_data.append((team_id, team_name))
+
+            # Insert into DB
+            for team_id, team_name in team_data:
+                team_obj, _ = Team.objects.get_or_create(
+                    unqiue_code=team_id,
+                    defaults={"name": team_name}
+                )
+                ClubSeason.objects.get_or_create(
+                    team=team_obj,
+                    season=season_obj,
+                    league=league_obj
+                )
+
+                print(f"Added: {team_name} ({team_id}) for {season_name}")
+
         except Exception as e:
             print(f"Failed to scrape {url}: {e}")
 
         time.sleep(SLEEP_TIME)
-        
-    # Filter for links containing a season format (YYYY-YYYY)
-    season_links = [link for link in all_team_links if re.search(r"/\d{4}-\d{4}/", link)]
-
-    # Deduplicate links
-    unique_links = list(set(season_links))
-    parsed_teams = []
-
-    for link in unique_links:
-        parts = link.strip('/').split('/')
-        if len(parts) >= 8 and parts[4] == 'squads':
-            team_id = parts[5]
-            team_name = parts[7].replace('-Stats', '')
-            parsed_teams.append([team_id, team_name])
-
-    
-    for item in parsed_teams:
-        print(item)
-
-    return parsed_teams

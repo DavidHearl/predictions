@@ -21,11 +21,17 @@ class Team(models.Model):
     name = models.CharField(max_length=100)
     unqiue_code = models.CharField(max_length=100, null=True)
 
+    def __str__(self):
+        return self.name
+
 
 class ClubSeason(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     league = models.ForeignKey(League, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.team.name} - {self.season.name} - {self.league.name}"
 
 
 class Player(models.Model):
