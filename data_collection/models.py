@@ -35,12 +35,18 @@ class ClubSeason(models.Model):
 
 
 class Player(models.Model):
-    name = models.CharField(max_length=100)
-    team = models.ForeignKey(Team, on_delete=models.CASCADE)
-    position = models.CharField(max_length=20)
-    birth_date = models.DateField()
-    nationality = models.CharField(max_length=50)
+    name = models.CharField(max_length=100, null=True)
     unique_code = models.CharField(max_length=100, null=True)
+    position = models.CharField(max_length=20, null=True)
+    birth_date = models.DateField(null=True)
+    nationality = models.CharField(max_length=50, null=True)
+    height = models.FloatField(blank=True, null=True, help_text="Height in cm")
+    weight = models.FloatField(blank=True, null=True, help_text="Weight in kg")
+    footed = models.CharField(max_length=10, choices=[('left', 'Left'), ('right', 'Right'), ('both', 'Both')], null=True)
+    player_url = models.URLField(max_length=300, unique=True, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
 
 
 class Match(models.Model):
@@ -49,10 +55,17 @@ class Match(models.Model):
     away_team = models.ForeignKey(Team, related_name='away_matches', on_delete=models.CASCADE)
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     league = models.ForeignKey(League, on_delete=models.CASCADE)
-    venue = models.CharField(max_length=100)
     attendance = models.IntegerField(null=True)
+    venue = models.CharField(max_length=100)
     home_score = models.PositiveSmallIntegerField(null=True)
     away_score = models.PositiveSmallIntegerField(null=True)
+    referee = models.CharField(max_length=100, null=True, blank=True)
+    match_url = models.URLField(max_length=300, unique=True, null=True, blank=True)
+
+    assistant_referee_1 = models.CharField(max_length=100, null=True, blank=True)
+    assistant_referee_2 = models.CharField(max_length=100, null=True, blank=True)
+    fourth_official = models.CharField(max_length=100, null=True, blank=True)
+    var_official = models.CharField(max_length=100, null=True, blank=True)
 
 
 class MatchShot(models.Model):

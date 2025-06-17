@@ -37,7 +37,7 @@ pip install -r requirements.txt
     - Create the seasons within a specified range and populate the *Season* model with:
         - **name**: Season name, ie 2021-2022
 
-- build_fbref_urls():
+- build_season_urls():
     - Use the season and the league to generate a list of urls which will be used to scrape the following...
 
 - populate_team_data():
@@ -51,6 +51,33 @@ pip install -r requirements.txt
         - **team**: Foreign Key for the name
         - **season**: Season which they participated in
         - **league**: League which they were in this season
+
+- build_team_urls():
+    - Create a list of urls for each team in each season
+
+- extract_player_urls():
+    - Get the player name in a team
+    - Get the link for that player
+    - Populate the *Player* Model with:
+        - **name**
+        - **player_url**
+
+- populate_player_details():
+    - Iterate through the player_urls and get the unique_code
+    - Get the position
+    - Get the players DOB
+    - Get the players Nationality
+    - Get the players Height
+    - Get the players Wegiht
+    - Get the players dominant foot
+    - Populate the *Player* Model with:
+        - **position**
+        - **birth_date**
+        - **nationality**
+        - **height**
+        - **wegiht**
+        - **footed**
+
 
 
 

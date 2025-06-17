@@ -1,16 +1,18 @@
 import requests
 import re
+import time
+
 from bs4 import BeautifulSoup
 from collections import Counter
 from data_collection.models import *
-import time
+from urllib.parse import quote
 
 
 # Define Global Variables
 SLEEP_TIME = 3.5 # Max requests 20 times per min
         
 
-def build_fbref_urls():
+def build_season_urls():
     """
     Constructs FBref URLs for all Seasons and Leagues in the database.
     Returns a list of URLs for all season-league combinations.
@@ -39,7 +41,7 @@ def populate_team_data():
     Inserts valid Team and ClubSeason records into the database.
     Only first 20 valid team links per season are processed.
     """
-    urls = build_fbref_urls()
+    urls = build_season_urls()
 
     for url in urls:
         print(f"Scraping teams from {url}")
