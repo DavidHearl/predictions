@@ -1,3 +1,102 @@
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #23272b;
+    color: #e0e6eb;
+    margin: 0;
+    padding: 0;
+}
+
+a {
+    color: #00e6d0;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a:hover {
+    color: #00ff7f;
+    text-decoration: underline;
+}
+
+nav {
+    background: #2c3136;
+    padding: 1em 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 2em;
+    justify-content: center;
+}
+
+nav li {
+    display: inline;
+}
+
+nav a {
+    color: #00e6d0;
+    font-weight: 600;
+    padding: 0.5em 1em;
+    border-radius: 4px;
+}
+
+nav a:hover, nav a.active {
+    background: #1b2227;
+    color: #00ff7f;
+}
+
+input, button, select, textarea {
+    background: #23272b;
+    color: #e0e6eb;
+    border: 1px solid #3a4047;
+    border-radius: 4px;
+    padding: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+input:focus, button:focus, select:focus, textarea:focus {
+    outline: 2px solid #00e6d0;
+    border-color: #00e6d0;
+}
+
+button {
+    background: linear-gradient(90deg, #00e6d0 0%, #00ff7f 100%);
+    color: #23272b;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s, color 0.2s;
+}
+
+button:hover {
+    background: linear-gradient(90deg, #00ff7f 0%, #00e6d0 100%);
+    color: #23272b;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #00c9b6;
+    margin: 0;
+}
+
+ul, ol {
+    border-radius: 6px;
+    padding: 1em 2em;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    background: #23272b;
+}
+::-webkit-scrollbar-thumb {
+    background: #00e6d0;
+    border-radius: 5px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2em;
 }

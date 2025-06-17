@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/players.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Players</h1>
+    <div class="player-counts">
+        <span>Total players: {{ total_count }}</span>
+        {% if query %}
+            <span> | Filtered: {{ filtered_count }}</span>
+        {% endif %}
+    </div>
+    <form method="get" class="player-filter-form">
+        <input type="text" name="q" placeholder="Filter by name" value="{{ query }}">
+        <button type="submit">Filter</button>
+    </form>
+    <ul class="player-list">
+        {% for player in players %}
+            <li class="player-row">
+                <span class="player-name">
+                    <a href="{% url 'player_detail' player.pk %}">{{ player.name }}</a>
+                </span>
+                <span class="player-edit">
+                    <form action="{% url 'player_edit' player.pk %}" method="get">
+                        <button type="submit" class="edit-btn">Edit</button>
+                    </form>
+                </span>
+            </li>
+        {% empty %}
+            <li>No players found.</li>
+        {% endfor %}
+    </ul>
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?q={{ query }}&page={{ page_obj.next_page_number }}">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
