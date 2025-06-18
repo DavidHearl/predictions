@@ -67,6 +67,9 @@ class Match(models.Model):
     fourth_official = models.CharField(max_length=100, null=True, blank=True)
     var_official = models.CharField(max_length=100, null=True, blank=True)
 
+    def __str__(self):
+        return f"{self.home_team.name} vs {self.away_team.name}"
+
 
 class MatchShot(models.Model):
     match = models.ForeignKey(Match, on_delete=models.CASCADE)
