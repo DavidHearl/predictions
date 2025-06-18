@@ -19,7 +19,7 @@ class League(models.Model):
 
 class Team(models.Model):
     name = models.CharField(max_length=100)
-    unqiue_code = models.CharField(max_length=100, null=True)
+    unique_code = models.CharField(max_length=100, null=True)
 
     def __str__(self):
         return self.name
@@ -37,7 +37,7 @@ class ClubSeason(models.Model):
 class Player(models.Model):
     name = models.CharField(max_length=100, null=True)
     unique_code = models.CharField(max_length=100, null=True)
-    position = models.CharField(max_length=20, null=True)
+    position = models.CharField(max_length=20, null=True, blank=True)
     birth_date = models.DateField(null=True)
     nationality = models.CharField(max_length=50, null=True)
     height = models.FloatField(blank=True, null=True, help_text="Height in cm")
@@ -68,7 +68,7 @@ class Match(models.Model):
     var_official = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
-        return f"{self.home_team.name} vs {self.away_team.name}"
+        return f"{self.season} : {self.home_team.name} vs {self.away_team.name}"
 
 
 class MatchShot(models.Model):
@@ -78,13 +78,16 @@ class MatchShot(models.Model):
 
     minute = models.PositiveSmallIntegerField(null=True)
     expected_goals = models.FloatField(null=True)
-    post_shot_expected_goals = models.FloatField(null=True)
+    post_shot_expected_goals = models.FloatField(null=True, default=0.0)
 
     outcome = models.CharField(max_length=50, null=True, blank=True)        # e.g. "Goal", "Blocked", "Saved"
     distance = models.FloatField(null=True, help_text="Distance in meters")
     body_part = models.CharField(max_length=50, null=True, blank=True)      # e.g. "Left Foot", "Right Foot", "Head"
     is_penalty = models.BooleanField(default=False)
     assisted_by = models.ForeignKey('Player', on_delete=models.SET_NULL, null=True, blank=True, related_name='assists')
+
+    def __str__(self):
+        return f"{self.match}"
 
 
 class MatchTeamStat(models.Model):
@@ -97,13 +100,16 @@ class MatchTeamStat(models.Model):
     possession = models.FloatField(null=True)
     passing_accuracy = models.FloatField(null=True)
     shots_on_target = models.PositiveSmallIntegerField(null=True)
+    total_shots = models.PositiveSmallIntegerField(null=True)
     saves = models.PositiveSmallIntegerField(null=True)
+
     fouls = models.PositiveSmallIntegerField(null=True)
     corners = models.PositiveSmallIntegerField(null=True)
     crosses = models.PositiveSmallIntegerField(null=True)
     touches = models.PositiveIntegerField(null=True)
     tackles = models.PositiveSmallIntegerField(null=True)
 
+    interceptions = models.PositiveSmallIntegerField(null=True)
     aerials_won = models.PositiveSmallIntegerField(null=True)
     clearances = models.PositiveSmallIntegerField(null=True)
     offsides = models.PositiveSmallIntegerField(null=True)
@@ -111,6 +117,8 @@ class MatchTeamStat(models.Model):
     throwins = models.PositiveSmallIntegerField(null=True)
     long_balls = models.PositiveSmallIntegerField(null=True)
 
+    def __str__(self):
+        return f"{self.match} : {'Home' if self.is_home else 'Away'}"
 
 
 class MatchPlayerStat(models.Model):

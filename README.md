@@ -78,6 +78,15 @@ pip install -r requirements.txt
         - **wegiht**
         - **footed**
 
+- build_fixture_urls()
+    - Create a list of urls for each league and season
+
+- extract_team_name_from_href()
+    - Extract the team name from the href found in the match table
+
+- get_fixture_tables()
+    
+
 
 
 

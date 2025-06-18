@@ -96,7 +96,7 @@ def populate_team_data():
             # Insert into DB
             for team_id, team_name in team_data:
                 team_obj, _ = Team.objects.get_or_create(
-                    unqiue_code=team_id,
+                    unique_code=team_id,
                     defaults={"name": team_name}
                 )
                 ClubSeason.objects.get_or_create(

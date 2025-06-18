@@ -8,5 +8,4 @@ class Command(BaseCommand):
     help = "Builds and prints FBref URL based on database season/league"
 
     def handle(self, *args, **options):
-        # populate_player_details()
-        get_fixture_tables()
+        process_all_matches()

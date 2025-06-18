@@ -23,7 +23,7 @@ def build_team_urls():
     club_seasons = ClubSeason.objects.select_related("team", "season")
 
     for cs in club_seasons:
-        team_id = cs.team.unqiue_code
+        team_id = cs.team.unique_code
         team_name_slug = cs.team.name.replace(" ", "-")
         season_str = cs.season.name
 
@@ -48,7 +48,7 @@ def extract_player_urls():
     team_urls = []
     club_seasons = ClubSeason.objects.select_related("team", "season")
     for cs in club_seasons:
-        team_id = cs.team.unqiue_code
+        team_id = cs.team.unique_code
         team_name_slug = cs.team.name.replace(" ", "-")
         season_str = cs.season.name
         url = f"https://fbref.com/en/squads/{team_id}/{season_str}/{team_name_slug}-Stats"
@@ -92,14 +92,45 @@ def extract_player_urls():
                     defaults={'name': name}
                 )
 
+# USED TO DOWNLOAD A PLAYERS PAGE TO PARSE THE SRTUCTURE. A URL IS REQUIRED TO RUN.
+# def download_player_html(player_url, filename="player.html", retries=3, delay=5):
+#     """
+#     Downloads raw HTML for a player page with retries on timeout errors.
+
+#     Args:
+#         player_url (str): Full FBref player URL
+#         filename (str): Name to save the HTML file as
+#         retries (int): Number of retries on failure
+#         delay (int): Delay in seconds between retries
+#     """
+#     for attempt in range(1, retries + 1):
+#         try:
+#             print(f"Downloading player page: {player_url} (Attempt {attempt})")
+#             response = requests.get(player_url, timeout=20)
+#             response.raise_for_status()
+
+#             with open(filename, "w", encoding="utf-8") as f:
+#                 f.write(response.text)
+
+#             print(f" - Saved HTML to {filename}")
+#             return
+
+#         except requests.exceptions.Timeout:
+#             print(" - Timeout. Retrying...")
+#             sleep(delay)
+
+#         except Exception as e:
+#             print(f" - Error downloading page: {e}")
+#             break
+
+#     print(f" - Failed to download page after {retries} attempts.")
+
 
 def populate_player_details():
     players = Player.objects.filter(player_url__isnull=False)
-
     print(f"Checking {players.count()} players...\n")
 
     for index, player in enumerate(players, start=1):
-        # Skip if ALL fields are already filled
         if all([
             player.unique_code,
             player.position,
@@ -114,22 +145,24 @@ def populate_player_details():
         print(f"[{index}/{players.count()}] Scraping: {player.name} -> {player.player_url}")
 
         try:
-            response = requests.get(player.player_url, timeout=10)
-            soup = BeautifulSoup(response.content, "html.parser")
+            response = requests.get(player.player_url, timeout=15)
+            html = response.text  # Save HTML as string
+            # Optional debug save:
+            # with open("player_debug.html", "w", encoding="utf-8") as f:
+            #     f.write(html)
+
+            soup = BeautifulSoup(html, "html.parser")
+
         except Exception as e:
             print(f"Failed to fetch page for {player.name}: {e}")
             time.sleep(SLEEP_TIME)
             continue
 
-        paragraphs = soup.find_all("p")
-
         # Extract unique_code from player_url
-        unique_code = None
         match = re.search(r"/en/players/([a-zA-Z0-9]{8})/", player.player_url)
-        if match:
-            unique_code = match.group(1)
+        unique_code = match.group(1) if match else player.unique_code
 
-        # Initialize values (fallbacks to existing values if not scraped)
+        # Initial fallback values
         position = player.position
         footed = player.footed
         height = player.height
@@ -137,38 +170,42 @@ def populate_player_details():
         birth_date = player.birth_date
         nationality = player.nationality
 
-        for p in paragraphs:
-            text = p.get_text(" ", strip=True)
+        meta = soup.find("div", id="meta")
+        if meta:
+            text_blocks = meta.find_all("p")
 
-            if "Position:" in text and "Footed:" in text:
-                match = re.search(r"Position:\s*([A-Z]+).*Footed:\s*(\w+)", text)
-                if match:
-                    position = match.group(1)
-                    footed = match.group(2).lower()
+            for p in text_blocks:
+                text = p.get_text(" ", strip=True)
 
-            elif "cm" in text and "kg" in text:
-                match = re.search(r"(\d{3})cm.*?(\d{2,3})kg", text)
-                if match:
-                    height = float(match.group(1))
-                    weight = float(match.group(2))
+                # Position (if available)
+                if text.startswith("Position:"):
+                    position = text.replace("Position:", "").strip()
 
-            elif "Born:" in text and birth_date is None:
-                match = re.search(r"Born:\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})", text)
-                if match:
-                    try:
-                        birth_date = datetime.strptime(match.group(1), "%B %d, %Y").date()
-                    except ValueError:
-                        pass
+                # Height and weight
+                elif "cm" in text and "kg" in text:
+                    match = re.search(r"(\d{3})cm.*?(\d{2,3})kg", text)
+                    if match:
+                        height = float(match.group(1))
+                        weight = float(match.group(2))
 
-            elif ("National Team:" in text or "Citizenship:" in text) and nationality is None:
-                country = p.find("a")
-                if country:
-                    nationality = country.get_text(strip=True)
+                # Birth date
+                elif "Born:" in text and birth_date is None:
+                    match = re.search(r"Born:\s+([A-Za-z]+\s+\d{1,2},?\s+\d{4})", text)
+                    if match:
+                        try:
+                            birth_date = datetime.strptime(match.group(1).replace(",", ""), "%B %d %Y").date()
+                        except ValueError:
+                            pass
 
+                # Nationality
+                elif ("Citizenship:" in text or "National Team:" in text) and nationality is None:
+                    link = p.find("a")
+                    if link:
+                        nationality = link.text.strip()
 
-        # Save if at least one new piece of data is retrieved
+        # Save if anything was updated
         Player.objects.filter(id=player.id).update(
-            unique_code=unique_code or player.unique_code,
+            unique_code=unique_code,
             position=position,
             footed=footed,
             height=height,
