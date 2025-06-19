@@ -253,6 +253,9 @@ class MatchPlayerStat(models.Model):
     gk_actions_outside_penalty_area = models.PositiveSmallIntegerField(null=True)
     gk_average_distance_from_goal = models.FloatField(null=True)
 
+    def __str__(self):
+        return f"{self.match} : {self.player.name} ({self.team.name})"
+
 
 class Prediction(models.Model):
     match = models.OneToOneField(Match, on_delete=models.CASCADE)

@@ -216,12 +216,26 @@ def process_all_matches():
 
             extract_match_shots(soup, match)
             extract_match_team_stats(soup, match)
-            # extract_match_player_stats(soup, match) < later
+            extract_match_player_stats(soup, match)
 
             print(f"Match {match.id} processed.")
 
         except Exception as e:
             print(f"Error processing match {match.id}: {e}")
+
+
+def safe_int(val):
+    try:
+        return int(val)
+    except:
+        return None
+
+
+def safe_float(val):
+    try:
+        return float(val.strip('%'))
+    except:
+        return None
 
 
 def parse_minute(minute_str):
@@ -240,6 +254,11 @@ def extract_match_shots(soup, match):
     table = soup.find("table", id="shots_all")
     if not table:
         print(f"No 'shots_all' table found for match {match.id}")
+        return
+
+    # Exit early if shots are already present
+    if MatchShot.objects.filter(match=match).exists():
+        print(f"Shots already recorded for match {match.id}, skipping.")
         return
 
     for row in table.find("tbody").find_all("tr"):
@@ -270,7 +289,6 @@ def extract_match_shots(soup, match):
             team_code = match.group(1)
             return Team.objects.filter(unique_code=team_code).first()
 
-        # Use href-based matching
         player_href = get_href_identifier("player")
         assister_href = get_href_identifier("sca_1_player")
         team_href = get_href_identifier("team")
@@ -303,18 +321,6 @@ def extract_match_shots(soup, match):
 
 
 def extract_match_team_stats(soup, match):
-    def safe_int(val):
-        try:
-            return int(val)
-        except:
-            return None
-
-    def safe_float(val):
-        try:
-            return float(val.strip('%'))
-        except:
-            return None
-
     # Get team codes and xG values from scorebox
     team_blocks = soup.find_all("div", class_="scorebox")[0].find_all("div", recursive=False)
     team_data = []
@@ -436,6 +442,261 @@ def extract_match_team_stats(soup, match):
 
 
 def extract_match_player_stats(soup, match):
-    print(f"Extracting player stats for match {match.id}")
-    # your real logic here
+    all_tables = soup.find_all("table", id=re.compile(
+        r"stats_(\w+?)_(summary|passing|passing_types|defense|possession|misc|keepers|keepers_adv)"
+    ))
 
+    player_stats = {}
+
+    FIELD_MAP = {
+        # Summary
+        "summary__minutes": "minutes_played",
+        "summary__goals": "goals",
+        "summary__assists": "assists",
+        "summary__shots": "shots",
+        "summary__shots_on_target": "shots_on_target",
+        "summary__xg": "expected_goals",
+        "summary__npxg": "non_penalty_expected_goals",
+        "summary__xg_assist": "expected_assists",
+        "summary__sca": "shot_creation_actions",
+        "summary__gca": "goal_creation_actions",
+        "summary__cards_yellow": "yellow_cards",
+        "summary__cards_red": "red_cards",
+        "summary__pens_made": "penalty_kicks_made",
+        "summary__pens_att": "penalty_kicks_attempted",
+        "summary__tackles": "tackles",
+        "summary__touches": "touches",
+        "summary__interceptions": "interceptions",
+
+        # Passing
+        "passing__passes_completed": "passes_completed",
+        "passing__passes": "passes_attempted",
+        "passing__passes_pct": "pass_completion_percentage",
+        "passing__passes_total_distance": "total_passing_distance",
+        "passing__passes_progressive_distance": "total_progressive_distance",
+        "passing__progressive_passes": "progressive_passes",
+        "passing__passes_into_final_third": "passes_into_final_third",
+        "passing__passes_into_penalty_area": "passes_into_penalty_area",
+        "passing__crosses_into_penalty_area": "crosses_into_penalty_area",
+        "passing__key_passes": "key_passes",
+        "passing__assisted_shots": "key_passes",
+        "passing__passes_completed_short": "short_passes_completed",
+        "passing__passes_short": "short_passes_attempted",
+        "passing__passes_pct_short": "short_passes_percentage",
+        "passing__passes_completed_medium": "medium_passes_completed",
+        "passing__passes_medium": "medium_passes_attempted",
+        "passing__passes_pct_medium": "medium_passes_percentage",
+        "passing__passes_completed_long": "long_passes_completed",
+        "passing__passes_long": "long_passes_attempted",
+        "passing__passes_pct_long": "long_passes_percentage",
+
+        # Passing Types
+        "passing__key_passes": "key_passes",
+        "passing_types__passes_live": "live_passes",
+        "passing_types__passes_dead": "dead_passes",
+        "passing_types__passes_free_kicks": "free_kicks",
+        "passing_types__through_balls": "through_balls",
+        "passing_types__passes_switches": "switches",
+        "passing_types__crosses": "crosses",
+        "passing_types__throw_ins": "throwins",
+        "passing_types__corner_kicks": "corners",
+        "passing_types__corner_kicks_in": "inswinging_corner_kicks",
+        "passing_types__corner_kicks_out": "outswinging_corner_kicks",
+        "passing_types__corner_kicks_straight": "straight_corner_kicks",
+
+        # Defense
+        "defense__tackles_won": "tackles_won",
+        "defense__tackles_def_3rd": "tackles_in_defensive_third",
+        "defense__tackles_mid_3rd": "tackles_in_middle_third",
+        "defense__tackles_att_3rd": "tackles_in_attacking_third",
+        "defense__challenge_tackles": "dribblers_tackled",
+        "defense__challenges": "dribbles_challenged",
+        "defense__challenge_tackles_pct": "dribble_tackle_percent",
+        "defense__blocks": "blocks",
+        "defense__blocked_shots": "shots_blocked",
+        "defense__blocked_passes": "passes_blocked",
+        "defense__interceptions": "interceptions",
+        "defense__tackles_interceptions": "tackles_and_interceptions",
+        "defense__clearances": "clearances",
+        "defense__errors": "errors",
+
+        # Possession
+        "possession__touches": "touches",
+        "possession__touches_def_pen_area": "touches_in_defensive_penalty",
+        "possession__touches_def_3rd": "touches_in_defensive_third",
+        "possession__touches_mid_3rd": "touches_in_middle_third",
+        "possession__touches_att_3rd": "touches_in_attacking_third",
+        "possession__touches_att_pen_area": "touches_in_attacking_penalty",
+        "possession__take_ons": "attempted_take_ons",
+        "possession__take_ons_won": "successful_take_ons",
+        "possession__take_ons_won_pct": "successful_take_on_percentage",
+        "possession__take_ons_tackled": "take_ons_tackled",
+        "possession__take_ons_tackled_pct": "take_ons_tackled_percentage",
+        "possession__carries": "carries",
+        "possession__progressive_carries": "progressive_carries",
+        "possession__carries_progressive_distance": "total_progressive_distance_carried",
+        "possession__carries_distance": "total_distance_carried",
+        "possession__carries_into_final_third": "carries_into_attacking_third",
+        "possession__carries_into_penalty_area": "carries_into_penalty_area",
+        "possession__progressive_passes_received": "progressive_passes_recieved",
+        "possession__miscontrols": "miscontrols",
+        "possession__dispossessed": "disposessions",
+        "possession__passes_received": "passes_recieved",
+
+        # Misc
+        "misc__cards_yellow_red": "second_yellow_cards",
+        "misc__fouls": "fouls",
+        "misc__fouled": "fouls_drawn",
+        "misc__offsides": "offsides",
+        "misc__pens_won": "penalty_kicks_won",
+        "misc__pens_conceded": "penalty_kicks_conceeded",
+        "misc__pens_made": "penalty_kicks_made",
+        "misc__pens_att": "penalty_kicks_attempted",
+        "misc__interceptions": "interceptions",
+        "misc__own_goals": "own_goals",
+        "misc__ball_recoveries": "balls_recovered",
+        "misc__aerials_won": "aerials_won",
+        "misc__aerials_lost": "aerials_lost",
+        "misc__aerials_won_pct": "aerials_won_percentage",  
+        "misc__aerials_won_pct": "aerial_win_percentage",
+
+        # GK Basic
+        # "keepers__shots_on_target_against": "gk_shots_on_targets",
+        # "keepers__goals_against": "gk_goals_against",
+        # "keepers__saves": "gk_saves",
+        # "keepers__save_pct": "gk_save_percentage",
+
+        # GK Advanced
+        # "keepers_adv__psxg": "gk_post_shot_expected_goals",
+        # "keepers_adv__passes_attempted": "gk_passes_attempted",
+        # "keepers_adv__throws_attempted": "gk_thows_attempted",
+        # "keepers_adv__launch_pct": "gk_launch_percent",
+        # "keepers_adv__average_pass_length": "gk_average_pass_length",
+        # "keepers_adv__goal_kicks": "gk_goal_kicks_attempted",
+        # "keepers_adv__goal_kick_launch_pct": "gk_goal_kick_launch_percent",
+        # "keepers_adv__goal_kick_length_avg": "gk_goak_kick_average_length",
+        # "keepers_adv__crosses_faced": "gk_crosses_opposed",
+        # "keepers_adv__crosses_stopped": "gk_crosses_stopped",
+        # "keepers_adv__crosses_stopped_pct": "gk_cross_stop_percentage",
+        # "keepers_adv__def_actions_outside_pen_area": "gk_actions_outside_penalty_area",
+        # "keepers_adv__avg_distance_def_actions": "gk_average_distance_from_goal",
+    }
+
+    all_tables = soup.find_all("table")
+    keeper_tables = [t for t in all_tables if t.get("id", "").startswith("keeper_stats_")]
+    stat_tables = [t for t in all_tables if re.match(r"stats_(\w+?)_(summary|passing|passing_types|defense|possession|misc)", t.get("id", ""))]
+
+    # Identify GK players by their player codes from keeper tables
+    goalkeeper_codes = set()
+    for table in keeper_tables:
+        for row in table.find("tbody").find_all("tr"):
+            player_cell = row.find("th", {"data-stat": "player"})
+            if player_cell and player_cell.find("a"):
+                href = player_cell.find("a")["href"]
+                code = href.split("/")[3]
+                goalkeeper_codes.add(code)
+
+    for table in stat_tables:
+        match_id = table.get("id")
+        match_data = re.match(r"stats_(\w+?)_(\w+)", match_id)
+        if not match_data:
+            continue
+        team_code, category = match_data.groups()
+        team = Team.objects.filter(unique_code=team_code).first()
+        if not team:
+            continue
+
+        for row in table.find("tbody").find_all("tr"):
+            if "class" in row.attrs and "thead" in row["class"]:
+                continue
+
+            player_cell = row.find("th", {"data-stat": "player"})
+            if not player_cell:
+                continue
+
+            player_href = player_cell.find("a")["href"] if player_cell.find("a") else None
+            player_code = player_href.split("/")[3] if player_href else None
+            if not player_code:
+                continue
+
+            player = Player.objects.filter(unique_code=player_code).first()
+            if not player:
+                continue
+
+            stat_obj, created = MatchPlayerStat.objects.get_or_create(match=match, team=team, player=player)
+
+            for cell in row.find_all("td"):
+                stat = cell.get("data-stat")
+                full_key = f"{category}__{stat}"
+                if full_key in FIELD_MAP:
+                    text = cell.get_text(strip=True).replace("%", "")
+                    if text == "":
+                        value = 0
+                    else:
+                        try:
+                            value = float(text) if "." in text else int(text)
+                        except ValueError:
+                            continue
+                    setattr(stat_obj, FIELD_MAP[full_key], value)
+
+            # If player is not a goalkeeper, zero out GK fields
+            if player_code not in goalkeeper_codes:
+                for field in MatchPlayerStat._meta.fields:
+                    if field.name.startswith("gk_"):
+                        setattr(stat_obj, field.name, 0)
+
+            stat_obj.save()
+
+    # Now parse keeper stats tables
+    GK_FIELD_MAP = {
+        "gk_shots_on_target_against": "gk_shots_on_targets",
+        "gk_goals_against": "gk_goals_against",
+        "gk_saves": "gk_saves",
+        "gk_save_pct": "gk_save_percentage",
+        "gk_psxg": "gk_post_shot_expected_goals",
+        "gk_passes_completed_launched": "gk_launches_completed",
+        "gk_passes_launched": "gk_launches_attempted",
+        "gk_passes_pct_launched": "gk_launches_completion_percentage",
+        "gk_passes": "gk_passes_attempted",
+        "gk_passes_throws": "gk_thows_attempted",
+        "gk_pct_passes_launched": "gk_launch_percent",
+        "gk_passes_length_avg": "gk_average_pass_length",
+        "gk_goal_kicks": "gk_goal_kicks_attempted",
+        "gk_pct_goal_kicks_launched": "gk_goal_kick_launch_percent",
+        "gk_goal_kick_length_avg": "gk_goak_kick_average_length",
+        "gk_crosses": "gk_crosses_opposed",
+        "gk_crosses_stopped": "gk_crosses_stopped",
+        "gk_crosses_stopped_pct": "gk_cross_stop_percentage",
+        "gk_def_actions_outside_pen_area": "gk_actions_outside_penalty_area",
+        "gk_avg_distance_def_actions": "gk_average_distance_from_goal",
+    }
+
+    for table in keeper_tables:
+        for row in table.find("tbody").find_all("tr"):
+            player_cell = row.find("th", {"data-stat": "player"})
+            if not player_cell or not player_cell.find("a"):
+                continue
+            player_code = player_cell.find("a")["href"].split("/")[3]
+            player = Player.objects.filter(unique_code=player_code).first()
+            if not player:
+                continue
+
+            stat_obj = MatchPlayerStat.objects.filter(match=match, player=player).first()
+            if not stat_obj:
+                continue
+
+            for cell in row.find_all("td"):
+                stat = cell.get("data-stat")
+                if stat in GK_FIELD_MAP:
+                    text = cell.get_text(strip=True).replace("%", "")
+                    if text == "":
+                        value = 0
+                    else:
+                        try:
+                            value = float(text) if "." in text else int(text)
+                        except ValueError:
+                            continue
+                    setattr(stat_obj, GK_FIELD_MAP[stat], value)
+            stat_obj.save()
+
+    print(f"Finished parsing player stats for match {match.id}")
