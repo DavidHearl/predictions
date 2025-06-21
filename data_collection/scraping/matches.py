@@ -203,14 +203,15 @@ def get_fixture_tables():
 
 
 def process_all_matches():
-    matches = Match.objects.exclude(match_url__isnull=True).exclude(match_url="")[:1]
+    matches = Match.objects.exclude(match_url__isnull=True).exclude(match_url="").order_by("date")
+    total = matches.count()
 
-    for match in matches:
-        url = match.match_url
-        print(f"Fetching: {url}")
+    for i, match in enumerate(matches, start=1):
+        print(f"\n[{i} / {total}] Fetching: {match.match_url}")
+        time.sleep(SLEEP_TIME)
 
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(match.match_url, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
 

@@ -1,35 +1,120 @@
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #23272b;
-    color: #e0e6eb;
+/* Reset some default styles */
+body, h1, h2, h3, h4, h5, h6, ul, ol, p, figure {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #181c22;
+    color: #f3f6fa;
+    min-height: 100vh;
 }
 
 a {
-    color: #00e6d0;
+    color: #1ecbe1;
     text-decoration: none;
     transition: color 0.2s;
 }
 
 a:hover {
-    color: #00ff7f;
-    text-decoration: underline;
+    color: #00ffae;
 }
 
+.container {
+    max-width: 1200px;
+    margin: 1em;
+    padding: 1em 2em;
+    background: #232a32;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(30, 203, 225, 0.07);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #1ecbe1;
+    margin-bottom: 0.7em;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+ul, ol {
+    border-radius: 8px;
+    padding: 1em 2em;
+    margin-bottom: 1.5em;
+}
+
+input, button, select, textarea {
+    background: #232a32;
+    color: #f3f6fa;
+    border: 1px solid #2e3740;
+    border-radius: 6px;
+    padding: 0.6em 1em;
+    margin-bottom: 0.7em;
+    font-size: 1em;
+}
+
+input:focus, button:focus, select:focus, textarea:focus {
+    outline: 2px solid #1ecbe1;
+    border-color: #1ecbe1;
+}
+
+button {
+    background: linear-gradient(90deg, #1ecbe1 0%, #00ffae 100%);
+    color: #181c22;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(30,203,225,0.08);
+}
+
+button:hover {
+    background: linear-gradient(90deg, #00ffae 0%, #1ecbe1 100%);
+    color: #181c22;
+    box-shadow: 0 4px 16px rgba(30,203,225,0.12);
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    background: #232a32;
+}
+::-webkit-scrollbar-thumb {
+    background: #1ecbe1;
+    border-radius: 5px;
+}
+
+/* Modern navigation bar */
 nav {
-    background: #2c3136;
-    padding: 1em 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    box-shadow: 0 2px 16px rgba(30,203,225,0.08);
+    padding: 0;
+    margin-bottom: 2em;
+    border-bottom: 2px solid #232a32;
+}
+
+nav .nav-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7em 2em;
+}
+
+nav .brand {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #1ecbe1;
+    letter-spacing: 0.03em;
 }
 
 nav ul {
     list-style: none;
+    display: flex;
+    gap: 1em;
     margin: 0;
     padding: 0;
-    display: flex;
-    gap: 2em;
-    justify-content: center;
 }
 
 nav li {
@@ -37,66 +122,105 @@ nav li {
 }
 
 nav a {
-    color: #00e6d0;
-    font-weight: 600;
-    padding: 0.5em 1em;
+    color: #f3f6fa;
+    font-weight: 500;
+    padding: 4px 10px 6px;
+    padding: 0.35em 0.7em;
     border-radius: 4px;
+    transition: background 0.25s, color 0.25s;
 }
 
 nav a:hover, nav a.active {
+    background: #18bdd3;
+    color: #181c22;
+}
+
+/* Responsive nav */
+@media (max-width: 700px) {
+    .container {
+        padding: 1em 0.5em;
+    }
+    nav .nav-container {
+        flex-direction: column;
+        gap: 0.7em;
+        padding: 1em 0.5em;
+    }
+    nav ul {
+        gap: 1em;
+    }
+}
+
+/* Card style for lists */
+ul.player-list, ul, ol {
+    border-radius: 8px;
+    padding: 1em 1.5em;
+}
+
+.player-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.7em 1em;
+    border-bottom: 1px solid #232a32;
+    background: #232a32;
+    transition: background 0.2s;
+}
+
+.player-row:hover {
     background: #1b2227;
-    color: #00ff7f;
 }
 
-input, button, select, textarea {
-    background: #23272b;
-    color: #e0e6eb;
-    border: 1px solid #3a4047;
-    border-radius: 4px;
-    padding: 0.5em;
-    margin-bottom: 0.5em;
+.player-name a {
+    color: #1ecbe1;
+    font-size: 1.08em;
+    font-weight: 500;
 }
 
-input:focus, button:focus, select:focus, textarea:focus {
-    outline: 2px solid #00e6d0;
-    border-color: #00e6d0;
+.player-edit {
+    margin-left: 1em;
 }
 
-button {
-    background: linear-gradient(90deg, #00e6d0 0%, #00ff7f 100%);
-    color: #23272b;
+.edit-btn {
+    background: linear-gradient(90deg, #1ecbe1 0%, #00ffae 100%);
+    color: #181c22;
     font-weight: bold;
-    cursor: pointer;
     border: none;
+    border-radius: 6px;
+    padding: 0.35em 1.1em;
+    cursor: pointer;
     transition: background 0.2s, color 0.2s;
-}
-
-button:hover {
-    background: linear-gradient(90deg, #00ff7f 0%, #00e6d0 100%);
-    color: #23272b;
-}
-
-h1, h2, h3, h4, h5, h6 {
-    color: #00c9b6;
+    font-size: 1em;
+    box-shadow: 0 2px 8px rgba(30,203,225,0.08);
     margin: 0;
 }
 
-ul, ol {
-    border-radius: 6px;
-    padding: 1em 2em;
+.edit-btn:hover {
+    background: linear-gradient(90deg, #00ffae 0%, #1ecbe1 100%);
+    color: #181c22;
 }
 
-::-webkit-scrollbar {
-    width: 10px;
-    background: #23272b;
-}
-::-webkit-scrollbar-thumb {
-    background: #00e6d0;
-    border-radius: 5px;
+/* Pagination */
+.pagination {
+    margin-top: 1.5em;
+    text-align: center;
 }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2em;
+.pagination a {
+    color: #1ecbe1;
+    text-decoration: none;
+    margin: 0 1em;
+    font-weight: bold;
+    border-radius: 4px;
+    padding: 0.2em 0.7em;
+    transition: background 0.2s, color 0.2s;
+}
+
+.pagination a:hover {
+    background: #1ecbe1;
+    color: #181c22;
+}
+
+.pagination span {
+    color: #a9a9a9;
+    font-size: 1.05em;
 }

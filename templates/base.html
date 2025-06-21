@@ -14,11 +14,31 @@
 
 <body>
     <nav>
-        <ul>
-            <li><a href="{% url 'home' %}">Home</a></li>
-            <li><a href="{% url 'players' %}">Players</a></li>
-        </ul>
+        <div class="nav-container">
+            <span class="brand">Football Predictions</span>
+            <ul>
+                <li><a href="{% url 'home' %}" {% if request.resolver_match.url_name == 'home' %}class="active"{% endif %}>Home</a></li>
+                <li><a href="{% url 'players' %}" {% if request.resolver_match.url_name == 'players' %}class="active"{% endif %}>Players</a></li>
+                <li><a href="#">Matches</a></li>
+                <li><a href="#">Shots</a></li>
+                <li><a href="#">Teams</a></li>
+                <li><a href="{% url 'admin:index' %}">Admin</a></li>
+            </ul>
+        </div>
     </nav>
+
+    <!-- 
+    Club seasons
+    Leagues
+    Match player stats
+    Match shots
+    Match team stats
+    Matchs
+    Players
+    Predictions
+    Seasons
+    Teams
+    -->
 
     {% block content %}
         <div class="container">
