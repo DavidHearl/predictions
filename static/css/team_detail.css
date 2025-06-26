@@ -1,0 +1,287 @@
+.team-header {
+    margin-bottom: 2em;
+    border-bottom: 2px solid #1a3c68;
+    padding-bottom: 1em;
+}
+
+.team-meta {
+    color: #a0a0a0;
+    margin-top: 0.5em;
+    display: flex;
+    gap: 1.5em;
+}
+
+.team-country {
+    color: #F87060;
+    font-weight: 500;
+}
+
+.section-header {
+    display: flex;
+    align-items: baseline;
+    margin: 2em 0 1em;
+}
+
+.section-header h2 {
+    margin: 0;
+    position: relative;
+    padding-bottom: 0.3em;
+    display: inline-block;
+}
+
+.section-header h2:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background: #F87060;
+    border-radius: 2px;
+}
+
+.section-info {
+    margin-left: 1em;
+    color: #a0a0a0;
+    font-size: 0.9em;
+}
+
+/* Seasons styling */
+.seasons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1em;
+}
+
+.season-card {
+    background: #1a3c68;
+    border-radius: 8px;
+    padding: 1em;
+    transition: all 0.2s;
+}
+
+.season-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.season-name {
+    font-weight: 600;
+    color: #F87060;
+    margin-bottom: 0.3em;
+}
+
+.season-league {
+    font-size: 0.9em;
+    color: #a0a0a0;
+}
+
+/* Stats styling */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.2em;
+}
+
+.stat-card {
+    background: #1a3c68;
+    border-radius: 8px;
+    padding: 1.2em 1em;
+    text-align: center;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #F87060;
+    margin-bottom: 0.3em;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    color: #a0a0a0;
+    font-weight: 500;
+}
+
+/* Recent matches styling */
+.recent-matches {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+.match-card {
+    background: #1a3c68;
+    border-radius: 8px;
+    padding: 1em;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8em;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.match-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.match-date {
+    font-size: 0.9em;
+    color: #a0a0a0;
+    width: 100px;
+    flex-shrink: 0;
+}
+
+.match-teams {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0 1em;
+}
+
+.team {
+    font-weight: 500;
+}
+
+.home-team {
+    text-align: right;
+}
+
+.away-team {
+    text-align: left;
+}
+
+.active-team {
+    color: #F87060;
+    font-weight: 600;
+}
+
+.match-score {
+    text-align: center;
+    font-weight: bold;
+    color: #F87060;
+    padding: 0.3em 0.6em;
+    background: rgba(248, 112, 96, 0.1);
+    border-radius: 6px;
+}
+
+.match-league {
+    font-size: 0.9em;
+    color: #a0a0a0;
+    width: 150px;
+    flex-shrink: 0;
+}
+
+.match-actions {
+    margin-left: auto;
+}
+
+.match-link {
+    background: #234578;
+    color: #f3f6fa;
+    padding: 0.4em 0.8em;
+    border-radius: 6px;
+    font-size: 0.9em;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.match-link:hover {
+    background: #2c5692;
+    transform: translateY(-2px);
+    color: #f3f6fa;
+}
+
+/* Players styling */
+.players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1em;
+}
+
+.player-card {
+    background: #1a3c68;
+    border-radius: 8px;
+    padding: 1em;
+    transition: all 0.2s;
+}
+
+.player-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.player-name {
+    font-weight: 500;
+}
+
+.player-name a {
+    color: #F87060;
+}
+
+.player-name a:hover {
+    color: #ff9483;
+}
+
+.no-data {
+    padding: 2em;
+    text-align: center;
+    background: #1a3c68;
+    border-radius: 8px;
+    color: #a0a0a0;
+    font-size: 1.1em;
+}
+
+.back-link {
+    margin-top: 2em;
+    text-align: center;
+}
+
+.back-link a {
+    background: #F87060;
+    color: #102542;
+    padding: 0.7em 1.8em;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.25s;
+    box-shadow: 0 4px 12px rgba(248, 112, 96, 0.25);
+    display: inline-block;
+}
+
+.back-link a:hover {
+    background: #ff9483;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(248, 112, 96, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .match-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .match-teams {
+        padding: 0;
+    }
+    
+    .match-league {
+        width: auto;
+    }
+    
+    .match-actions {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+}

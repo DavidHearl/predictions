@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/matches.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Matches</h1>
+    <div class="match-counts">
+        <span>Total matches: {{ total_count }}</span>
+        {% if selected_season or selected_team or date_from or date_to %}
+            <span> | Filtered: {{ filtered_count }}</span>
+        {% endif %}
+    </div>
+    
+    <form method="get" class="match-filter-form">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="season">Season:</label>
+                <select name="season" id="season">
+                    <option value="">All Seasons</option>
+                    {% for season in seasons %}
+                        <option value="{{ season.id }}" {% if selected_season|floatformat:"0" == season.id|floatformat:"0" %}selected{% endif %}>{{ season.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="team">Team:</label>
+                <select name="team" id="team">
+                    <option value="">All Teams</option>
+                    {% for team in teams %}
+                        <option value="{{ team.id }}" {% if selected_team|floatformat:"0" == team.id|floatformat:"0" %}selected{% endif %}>{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="from">From Date:</label>
+                <input type="date" name="from" id="from" value="{{ date_from }}">
+            </div>
+            
+            <div class="filter-group">
+                <label for="to">To Date:</label>
+                <input type="date" name="to" id="to" value="{{ date_to }}">
+            </div>
+            
+            <button type="submit">Apply Filters</button>
+            <a href="{% url 'matches' %}" class="reset-btn">Reset</a>
+        </div>
+    </form>
+
+    <div class="matches-list">
+        {% for match in matches %}
+            <div class="match-card">
+                <div class="match-header">
+                    <span class="match-date">{{ match.date|date:"M d, Y" }}</span>
+                    <span class="match-league">{{ match.league.name }}</span>
+                </div>
+                <div class="match-teams">
+                    <div class="team home-team">
+                        <span class="team-name">{{ match.home_team.name }}</span>
+                    </div>
+                    <div class="match-score">
+                        {% if match.home_score is not None and match.away_score is not None %}
+                            <span class="score">{{ match.home_score }} - {{ match.away_score }}</span>
+                        {% else %}
+                            <span class="score">vs</span>
+                        {% endif %}
+                    </div>
+                    <div class="team away-team">
+                        <span class="team-name">{{ match.away_team.name }}</span>
+                    </div>
+                </div>
+                <div class="match-footer">
+                    <span class="match-venue">{{ match.venue }}</span>
+                    <a href="{% url 'match_detail' match.pk %}" class="match-details-btn">View Details</a>
+                </div>
+            </div>
+        {% empty %}
+            <div class="no-matches">No matches found matching your criteria.</div>
+        {% endfor %}
+    </div>
+    
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?season={{ selected_season }}&team={{ selected_team }}&from={{ date_from }}&to={{ date_to }}&page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?season={{ selected_season }}&team={{ selected_team }}&from={{ date_from }}&to={{ date_to }}&page={{ page_obj.next_page_number }}">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
