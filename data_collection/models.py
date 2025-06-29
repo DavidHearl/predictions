@@ -37,7 +37,7 @@ class ClubSeason(models.Model):
 class Player(models.Model):
     name = models.CharField(max_length=100, null=True)
     unique_code = models.CharField(max_length=100, null=True)
-    position = models.CharField(max_length=20, null=True, blank=True)
+    position = models.CharField(max_length=50, null=True, blank=True)
     birth_date = models.DateField(null=True)
     nationality = models.CharField(max_length=50, null=True)
     height = models.FloatField(blank=True, null=True, help_text="Height in cm")
