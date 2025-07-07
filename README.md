@@ -20,6 +20,12 @@ source virtual_environment/bin/activate
 ```
 
 - Download all of the dependencies
+- Save your dependencies to a requirements file
+
+```
+pip freeze > requirements.txt
+```
+
 ```
 pip install -r requirements.txt
 ```

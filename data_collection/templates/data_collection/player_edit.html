@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{% if request.user.is_superuser %}
 <div class="container">
     <h1>Edit {{ player.name }}</h1>
     <form method="post">
@@ -9,4 +10,10 @@
     </form>
     <a href="{% url 'player_detail' player.pk %}">Back to details</a>
 </div>
+{% else %}
+<div class="container">
+    <h2>Access Denied</h2>
+    <p>You do not have permission to view this page.</p>
+</div>
+{% endif %}
 {% endblock %}

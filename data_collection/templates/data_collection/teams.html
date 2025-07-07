@@ -6,6 +6,7 @@
 {% endblock %}
 
 {% block content %}
+{% if request.user.is_superuser %}
 <div class="container">
     <h1>Teams</h1>
     <div class="team-counts">
@@ -89,4 +90,10 @@
         {% endif %}
     </div>
 </div>
+{% else %}
+    <div class="container">
+        <h2>Access Denied</h2>
+        <p>You do not have permission to view this page.</p>
+    </div>
+{% endif %}
 {% endblock %}

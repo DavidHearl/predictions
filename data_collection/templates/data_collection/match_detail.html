@@ -6,6 +6,8 @@
 {% endblock %}
 
 {% block content %}
+
+{% if request.user.is_superuser %}
 <div class="container">
     <div class="match-header">
         <div class="match-meta">
@@ -132,4 +134,10 @@
         <a href="{% url 'matches' %}">Back to Matches List</a>
     </div>
 </div>
+{% else %}
+<div class="container">
+    <h2>Access Denied</h2>
+    <p>You do not have permission to view this page.</p>
+</div>
+{% endif %}
 {% endblock %}
