@@ -2,14 +2,16 @@
 {% load static %}
 
 {% block content %}
-    {% if request.user.is_superuser %}
-        <div class="container">
-            <h1>Welcome to the Home Page</h1>
-        </div>
-    {% else %}
-        <div class="container">
-            <h2>Access Denied</h2>
-            <p>You do not have permission to view this page.</p>
-        </div>
-    {% endif %}
+    <div class="container">
+        {% if request.user.is_superuser %}
+            <div class="card">
+                <h1>Welcome to the Home Page</h1>
+            </div>
+        {% else %}
+            <div class="card">
+                <h2>Access Denied</h2>
+                <p>You do not have permission to view this page.</p>
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}

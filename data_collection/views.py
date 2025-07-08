@@ -12,14 +12,28 @@ def home(request):
 
 def players(request):
     query = request.GET.get("q", "")
+    missing_data = request.GET.get("missing_data") == "on"
+    
     players_qs = Player.objects.all()
+    
     if query:
         players_qs = players_qs.filter(name__icontains=query)
+    
+    if missing_data:
+        players_qs = players_qs.filter(
+            models.Q(height__isnull=True) | 
+            models.Q(weight__isnull=True) | 
+            models.Q(birth_date__isnull=True) |
+            models.Q(nationality__isnull=True)
+        )
+    
     total_count = Player.objects.count()
     filtered_count = players_qs.count()
+    
     paginator = Paginator(players_qs, 200)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
+    
     return render(
         request,
         "data_collection/players.html",
@@ -27,6 +41,7 @@ def players(request):
             "players": page_obj.object_list,
             "page_obj": page_obj,
             "query": query,
+            "missing_data": missing_data,
             "total_count": total_count,
             "filtered_count": filtered_count,
         },
