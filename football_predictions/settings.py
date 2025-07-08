@@ -34,7 +34,8 @@ ALLOWED_HOSTS = [
 	'localhost',
 	'192.168.1.9'
 	'100.93.236.88',
-	'predictions'
+	'predictions',
+    'predictions.mediaservers.co.uk'
 ]
 
 
