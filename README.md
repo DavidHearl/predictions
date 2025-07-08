@@ -95,9 +95,9 @@ pip install -r requirements.txt
 # Deployment
 When deploying some changes to the server (ie git pull)
 Make sure you restart the server with this command
+
 ```
 sudo systemctl restart gunicorn_predictions
-
 ```
 
 
