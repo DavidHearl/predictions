@@ -12,6 +12,7 @@ class League(models.Model):
     name = models.CharField(max_length=100)
     country = models.CharField(max_length=50)
     league_id = models.PositiveIntegerField()
+    number_of_teams = models.PositiveIntegerField(default=20)
 
     def __str__(self):
         return self.name
@@ -29,6 +30,7 @@ class ClubSeason(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
     season = models.ForeignKey(Season, on_delete=models.CASCADE)
     league = models.ForeignKey(League, on_delete=models.CASCADE)
+    number_of_players = models.PositiveIntegerField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.team.name} - {self.season.name} - {self.league.name}"

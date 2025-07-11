@@ -1,13 +1,56 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import *
 from .forms import *
+from .utils import *
 from django.core.paginator import Paginator
 from django.db.models import Avg, Sum, Count, Case, When, IntegerField, FloatField, F
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 
 def home(request):
-    return render(request, "data_collection/home.html")
+    form = MatchPredictionDateForm(request.GET or None)
+
+    if form.is_valid():
+        selected_date_str = form.cleaned_data.get("match_date")
+        selected_date = date.fromisoformat(selected_date_str) if selected_date_str else date.today()
+    else:
+        selected_date = date.today()
+
+    matches = Match.objects.filter(date__date=selected_date).order_by("date")
+
+    match_data = []
+    for match in matches:
+        prediction = predict_from_history(match)
+
+        # Get players per team for the match
+        home_players = (
+            MatchPlayerStat.objects
+            .filter(match=match, team=match.home_team)
+            .select_related('player')
+            .order_by('-minutes_played')[:11]  # assume top 11 are starters
+        )
+
+        away_players = (
+            MatchPlayerStat.objects
+            .filter(match=match, team=match.away_team)
+            .select_related('player')
+            .order_by('-minutes_played')[:11]
+        )
+
+        match_data.append({
+            "match": match,
+            "prediction": prediction,
+            "home_players": home_players,
+            "away_players": away_players,
+        })
+
+    context = {
+        "form": form,
+        "matches": match_data,
+        "selected_date": selected_date
+    }
+
+    return render(request, "data_collection/home.html", context)
 
 
 def players(request):

@@ -39,12 +39,19 @@ pip install -r requirements.txt
 
 ## Project Stages
 
+
+""" 
+Create a simple utility function to populate the season dates at the start of the project.
+When the database has been populated this will become redundant and not reqiured.
+"""
 - create_seasons(): # Utilities function (datacollect/utils/seasons.py)
     - Create the seasons within a specified range and populate the *Season* model with:
         - **name**: Season name, ie 2021-2022
 
 - build_season_urls():
     - Use the season and the league to generate a list of urls which will be used to scrape the following...
+
+
 
 - populate_team_data():
     - Get the unique code for all the teams

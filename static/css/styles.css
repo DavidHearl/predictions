@@ -92,6 +92,14 @@ a:hover {
 	margin: 16px;
 }
 
+.table-card {
+	background-color: var(--color-surface);
+	border-radius: var(--border-radius);
+	padding: 0;
+	box-shadow: var(--box-shadow);
+	margin: 16px;
+}
+
 .center {
 	text-align: center !important;
 }
@@ -314,7 +322,6 @@ a:hover {
     display: none;
 }
 
-
 /* ==========================================================================
 	 Media Queries
 	 ========================================================================== */
@@ -381,6 +388,10 @@ a:hover {
         margin: 0;
         width: 100%;
     }
+
+	.table-card {
+		margin: 8px;
+	}
 }
 
 /* ==========================================================================
@@ -394,4 +405,176 @@ a:hover {
 ::-webkit-scrollbar-thumb {
 	background: var(--color-primary);
 	border-radius: 5px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ==========================================================================
+	 Sort later Section
+	 ========================================================================== */
+
+/* Match prediction styling */
+.match-prediction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    margin: 1.5em 0;
+}
+
+.match-card {
+    background: var(--color-surface-alt);
+    border-radius: var(--border-radius);
+    padding: 1em;
+    box-shadow: var(--box-shadow);
+}
+
+.match-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8em;
+    padding-bottom: 0.8em;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.match-teams {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--color-heading);
+}
+
+.match-kickoff {
+    color: var(--color-text-muted);
+    font-size: 0.9em;
+}
+
+.match-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1em;
+}
+
+.prediction-container, .result-container {
+    padding: 0.8em;
+    border-radius: var(--border-radius);
+}
+
+.prediction-container {
+    background: var(--color-surface);
+}
+
+.prediction-label, .result-label {
+    font-size: 0.9em;
+    color: var(--color-primary);
+    margin-bottom: 0.4em;
+    font-weight: 500;
+}
+
+.prediction-score, .result-score {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: var(--color-heading);
+}
+
+.prediction-outcome {
+    font-size: 0.9em;
+    margin-top: 0.3em;
+    color: var(--color-text-muted);
+}
+
+.result-container {
+    background: rgba(255, 77, 77, 0.1);
+}
+
+.no-prediction, .no-result {
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .match-details {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Team sheets styling */
+.team-sheets {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1em;
+    margin-top: 1.2em;
+}
+
+.team-sheet {
+    background: var(--color-surface);
+    border-radius: var(--border-radius);
+    padding: 12px;
+    position: relative;
+}
+
+.team-sheet strong {
+    color: var(--color-heading);
+    display: block;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+    font-size: 1.05em;
+}
+
+.team-sheet:first-child {
+    border-left: 3px solid var(--color-secondary);
+}
+
+.team-sheet:last-child {
+	border-left: 3px solid var(--color-primary);
+}
+
+.team-sheet ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.team-sheet li {
+    padding: 0;
+    font-size: 0.95em;
+}
+
+.team-sheet li .position {
+    color: var(--color-text-muted);
+    font-size: 0.9em;
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+    .team-sheets {
+        grid-template-columns: 1fr;
+    }
+    
+    .team-sheet:last-child {
+        margin-top: 1em;
+    }
 }

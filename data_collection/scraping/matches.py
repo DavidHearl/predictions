@@ -11,7 +11,7 @@ from data_collection.models import *
 from pathlib import Path
 
 
-SLEEP_TIME = 3.5  # Max requests 20 times per min
+SLEEP_TIME = 3.75  # Max requests 20 times per min
 
 
 def build_fixture_urls():

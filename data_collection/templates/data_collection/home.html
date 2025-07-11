@@ -5,7 +5,82 @@
     <div class="container">
         {% if request.user.is_superuser %}
             <div class="card">
-                <h1>Welcome to the Home Page</h1>
+                <h2>Football Match Predictions</h2>
+
+                <form method="get" class="mb-4">
+                    <label for="id_match_date">Select a Match Date:</label>
+                    {{ form.match_date }}
+                    <button type="submit" class="btn btn-primary mt-2">Load Matches</button>
+                </form>
+
+                {% if matches %}
+                <h4>Matches on {{ selected_date }}</h4>
+                <div class="match-prediction-list">
+                {% for item in matches %}
+                    <div class="match-card">
+                        <div class="match-header">
+                            <div class="match-teams">{{ item.match.home_team.name }} vs {{ item.match.away_team.name }}</div>
+                            <div class="match-kickoff">Kickoff: {{ item.match.date|time:"H:i" }}</div>
+                        </div>
+                        <div class="match-details">
+                            <div class="prediction-container">
+                                <div class="prediction-label">Prediction</div>
+                                {% if item.prediction %}
+                                    <div class="prediction-score">{{ item.prediction.home_score|floatformat:1 }} – {{ item.prediction.away_score|floatformat:1 }}</div>
+                                    <div class="prediction-outcome">{{ item.prediction.result|title }} Win</div>
+                                {% else %}
+                                    <div class="no-prediction">No prediction available</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="result-container">
+                                <div class="result-label">Actual Result</div>
+                                {% if item.match.home_score is not None and item.match.away_score is not None %}
+                                    <div class="result-score">{{ item.match.home_score }} – {{ item.match.away_score }}</div>
+                                {% else %}
+                                    <div class="no-result">Match not played yet</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="team-sheets">
+                            <div class="team-sheet">
+                                <strong>{{ item.match.home_team.name }} Lineup</strong>
+                                <ul>
+                                {% for stat in item.home_players %}
+                                    <li>{{ stat.player.name }}{% if stat.player.position %} <span class="position">({{ stat.player.position }})</span>{% endif %}</li>
+                                {% endfor %}
+                                </ul>
+                            </div>
+
+                            <div class="team-sheet">
+                                <strong>{{ item.match.away_team.name }} Lineup</strong>
+                                <ul>
+                                {% for stat in item.away_players %}
+                                    <li>{{ stat.player.name }}{% if stat.player.position %} <span class="position">({{ stat.player.position }})</span>{% endif %}</li>
+                                {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+
+                        {% if item.prediction.bets %}
+                            <div class="recommended-bets mt-3">
+                                <strong>Recommended Bets:</strong>
+                                <ul>
+                                {% for bet in item.prediction.bets %}
+                                    <li>{{ bet.type }} — <em>{{ bet.confidence }}%</em> confidence</li>
+                                {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <p>No matches found for {{ selected_date }}.</p>
+            {% endif %}
+
             </div>
         {% else %}
             <div class="card">

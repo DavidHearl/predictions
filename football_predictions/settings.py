@@ -26,13 +26,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv('DEBUG')
 
 ALLOWED_HOSTS = [
 	'100.119.207.7',
 	'127.0.0.1',
 	'localhost',
-	'192.168.1.9'
+	'192.168.1.9',
 	'100.93.236.88',
 	'predictions',
     'predictions.mediaservers.co.uk'
