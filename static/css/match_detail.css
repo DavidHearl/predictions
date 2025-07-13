@@ -1,0 +1,199 @@
+.match-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    color: #b9b9b9;
+}
+
+.match-date {
+    font-size: 1.2em;
+    color: #F87060;
+    font-weight: 500;
+}
+
+.match-result {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr;
+    gap: 1em;
+    align-items: center;
+    position: relative;
+}
+
+.team {
+    text-align: center;
+    padding: 1em;
+}
+
+.home-team {
+    text-align: right;
+}
+
+.away-team {
+    text-align: left;
+}
+
+.team-name {
+    font-size: 1.6em;
+    font-weight: bold;
+    color: #f3f6fa;
+    margin-bottom: 0.5em;
+}
+
+.team-xg {
+    font-size: 1.1em;
+    color: #F87060;
+    font-weight: 500;
+}
+
+.score-container {
+    text-align: center;
+    background: rgba(248, 112, 96, 0.1);
+    padding: 1em 0.5em;
+    border-radius: 10px;
+}
+
+.score {
+    font-size: 2.8em;
+    font-weight: bold;
+    color: #F87060;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+h2 {
+    margin-bottom: 8px;
+}
+
+.stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8em;
+}
+
+.stat-row {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 1em;
+    align-items: center;
+    background: #3F444F;
+    padding: 0.9em 1.5em;
+    border-radius: 8px;
+
+}
+
+.stat-name {
+    text-align: center;
+    font-weight: 500;
+    font-size: 1em;
+    color: #e0e0e0;
+}
+
+.stat-value {
+    font-size: 1.15em;
+    font-weight: bold;
+}
+
+.stat-value:first-child {
+    text-align: right;
+    color: #F87060;
+}
+
+.stat-value:last-child {
+    text-align: left;
+    color: #ff9483;
+}
+
+.shots-container {
+    overflow-x: auto;
+    margin-bottom: 2.5em;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.shots-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #1E2129;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.shots-table th {
+    background: #3F444F;
+    padding: 1em;
+    text-align: left;
+    font-weight: 500;
+    color: #F87060;
+}
+
+.shots-table td {
+    padding: 0.9em 1em;
+    border-bottom: 1px solid #5C6270;
+}
+
+.home-shot,
+.away-shot {
+    background: #1E2129;
+}
+
+.goal {
+    background: green;
+}
+
+.back-link {
+    margin: 2.5em 0 1em;
+    text-align: center;
+}
+
+.back-link a {
+    background: #F87060;
+    color: #102542;
+    padding: 0.7em 1.8em;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.25s;
+    box-shadow: 0 4px 12px rgba(248, 112, 96, 0.25);
+    display: inline-block;
+}
+
+.back-link a:hover {
+    background: #ff9483;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(248, 112, 96, 0.3);
+}
+
+.back-link a:active {
+    transform: translateY(-1px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .match-result {
+        grid-template-columns: 1fr;
+        gap: 0.8em;
+        padding: 1.5em 1em;
+    }
+    
+    .home-team, .away-team {
+        text-align: center;
+    }
+    
+    .score {
+        font-size: 2em;
+        margin: 0.5em 0;
+    }
+    
+    .stat-row {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 0.4em;
+    }
+    
+    .stat-value:first-child,
+    .stat-value:last-child {
+        text-align: center;
+    }
+    
+    .team-name {
+        font-size: 1.3em;
+    }
+}

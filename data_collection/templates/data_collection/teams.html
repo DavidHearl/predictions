@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/teams.css' %}">
+{% endblock %}
+
+{% block content %}
+{% if request.user.is_superuser %}
+<div class="container">
+    <h1>Teams</h1>
+    <div class="team-counts">
+        <span>Total teams: {{ total_count }}</span>
+        {% if selected_league or selected_season or query %}
+            <span> | Filtered: {{ filtered_count }}</span>
+        {% endif %}
+    </div>
+    
+    <!-- Filter form -->
+    <form method="get" class="team-filter-form">
+        <div class="filter-row">
+            <div class="filter-group search-group">
+                <label for="q">Search:</label>
+                <input type="text" name="q" id="q" value="{{ query }}" placeholder="Team name...">
+            </div>
+            
+            <div class="filter-group">
+                <label for="league">League:</label>
+                <select name="league" id="league">
+                    <option value="">All Leagues</option>
+                    {% for league in leagues %}
+                        <option value="{{ league.id }}" {% if selected_league|floatformat:"0" == league.id|floatformat:"0" %}selected{% endif %}>{{ league.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="season">Season:</label>
+                <select name="season" id="season">
+                    <option value="">All Seasons</option>
+                    {% for season in seasons %}
+                        <option value="{{ season.id }}" {% if selected_season|floatformat:"0" == season.id|floatformat:"0" %}selected{% endif %}>{{ season.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-buttons">
+                <button type="submit">Apply Filters</button>
+                <a href="{% url 'teams' %}" class="reset-btn">Reset</a>
+            </div>
+        </div>
+    </form>
+
+    <!-- Teams grid -->
+    <div class="teams-grid">
+        {% for team in teams %}
+            <div class="team-card">
+                <div class="team-name">
+                    <a href="{% url 'team_detail' team.pk %}">{{ team.name }}</a>
+                </div>
+                <div class="team-meta">
+                    <div class="team-seasons">
+                        {% with season_count=team.clubseason_set.count %}
+                            {% if season_count > 0 %}
+                                {{ season_count }} season{% if season_count > 1 %}s{% endif %}
+                            {% else %}
+                                No seasons
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+                <div class="team-actions">
+                    <a href="{% url 'team_detail' team.pk %}" class="view-team-btn">View Team</a>
+                    <a href="{% url 'matches' %}?team={{ team.id }}" class="team-matches-btn">Matches</a>
+                </div>
+            </div>
+        {% empty %}
+            <div class="no-teams">No teams found matching your criteria.</div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?league={{ selected_league }}&season={{ selected_season }}&q={{ query }}&page={{ page_obj.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+            <a href="?league={{ selected_league }}&season={{ selected_season }}&q={{ query }}&page={{ page_obj.next_page_number }}">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+    <div class="container">
+        <h2>Access Denied</h2>
+        <p>You do not have permission to view this page.</p>
+    </div>
+{% endif %}
+{% endblock %}

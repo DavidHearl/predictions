@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/players.css' %}">
+{% endblock %}
+
+{% block content %}
+    {% if request.user.is_superuser %}
+        <div class="container">
+            <div class="card form-card">
+                <h1>{{ player.name }}</h1>
+                
+                <form method="post" class="player-edit-form">
+                    {% csrf_token %}
+                    
+                    {% for field in form %}
+                        <div class="form-group">
+                            {{ field.label_tag }}
+                            <div class="field-container">
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <div class="field-help">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% if field.errors %}
+                                    <div class="field-errors">
+                                        {% for error in field.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                    <div class="form-actions">
+                        <a href="{% url 'player_detail' player.pk %}" class="back-link">Cancel</a>
+                        <button type="submit" class="edit-btn">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% else %}
+        <div class="container">
+            <h2>Access Denied</h2>
+            <p>You do not have permission to view this page.</p>
+        </div>
+    {% endif %}
+{% endblock %}

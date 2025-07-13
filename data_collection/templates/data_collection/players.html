@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/players.css' %}">
+{% endblock %}
+
+{% block content %}
+    {% if request.user.is_superuser %}
+        <div class="container">
+            <div class="card">
+                <h1>Players</h1>
+
+                <div class="player-counts">Showing {{ page_obj.paginator.count }} players</div>
+
+                <form class="player-filter-form" method="get" id="player-search-form">
+                    <input type="text" name="q" placeholder="Search players..." value="{{ query }}" id="player-search-input">
+                    <div class="filter-options">
+                        <label class="checkbox-container">
+                            <input type="checkbox" name="missing_data" id="missing-data-checkbox" {% if missing_data %}checked{% endif %}>
+                            <span class="checkbox-label">Missing Data</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+
+            <div class="table-card">
+                <table class="player-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th class="hide-mobile">Position</th>
+                            <th class="hide-mobile">Nationality</th>
+                            <th class="hide-mobile">Birth Date</th>
+                            <th class="center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for player in page_obj %}
+                        <tr>
+                            <td><a href="{% url 'player_detail' player.pk %}">{{ player.name }}</a></td>
+                            <td class="hide-mobile">{{ player.position }}</td>
+                            <td class="hide-mobile">{{ player.nationality }}</td>
+                            <td class="hide-mobile">{{ player.birth_date }}</td>
+                            <td class="center">
+                                <form action="{% url 'player_edit' player.pk %}" method="get">
+                                    <button type="submit" class="edit-btn">Edit</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+
+                <div class="pagination">
+                    {% if page_obj.has_previous %}
+                        <a href="?q={{ request.GET.q }}&missing_data={% if missing_data %}on{% endif %}&page={{ page_obj.previous_page_number }}">Previous</a>
+                    {% endif %}
+                    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                    {% if page_obj.has_next %}
+                        <a href="?q={{ request.GET.q }}&missing_data={% if missing_data %}on{% endif %}&page={{ page_obj.next_page_number }}">Next</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    {% else %}
+        <div class="container">
+            <h2>Access Denied</h2>
+            <p>You do not have permission to view this page.</p>
+        </div>
+    {% endif %}
+        
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('player-search-input');
+            const searchForm = document.getElementById('player-search-form');
+            const missingDataCheckbox = document.getElementById('missing-data-checkbox');
+            let typingTimer;
+            const doneTypingInterval = 250; // Wait 250ms after user stops typing
+
+            // Auto-focus the search input when page loads and place cursor at end
+            if (searchInput) {
+                searchInput.focus();
+                // Place cursor at the end of the input text
+                const inputLength = searchInput.value.length;
+                searchInput.setSelectionRange(inputLength, inputLength);
+            }
+
+            // Function to submit the form
+            function submitSearch() {
+                searchForm.submit();
+            }
+
+            // Event listener for input changes
+            searchInput.addEventListener('input', function() {
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(submitSearch, doneTypingInterval);
+            });
+
+            // Clear the timer if the user continues typing
+            searchInput.addEventListener('keydown', function() {
+                clearTimeout(typingTimer);
+            });
+            
+            // Submit form when checkbox is clicked
+            if (missingDataCheckbox) {
+                missingDataCheckbox.addEventListener('change', submitSearch);
+            }
+        });
+    </script>
+{% endblock %}

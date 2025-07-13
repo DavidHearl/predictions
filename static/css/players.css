@@ -1,0 +1,230 @@
+.player-counts {
+    margin-top: 4px;
+    margin-bottom: 12px;
+    font-size: 1.1em;
+    color: #b9b9b9;
+}
+
+.player-filter-form {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: nowrap;
+}
+
+.player-filter-form input[type="text"] {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #747575;
+    background: #3F444F;
+    color: #f3f6fa;
+    width: 100%;
+}
+
+.player-filter-form button {
+    padding: 0.6em 1.2em;
+    background: #FF4D4D;
+    color: #102542;
+    font-weight: 600;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.player-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    border: 1px solid #5C6270;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.player-table thead {
+    background-color: #3F444F;
+}
+
+.player-table th,
+.player-table td {
+    padding: 4px 8px;
+    text-align: left;
+    border-bottom: 1px solid #5C6270;
+    color: #E6E9EF;
+}
+
+.player-table th {
+    padding: 8px;
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.player-table tr:hover {
+    background-color: #50545E;
+}
+
+.edit-btn {
+    cursor: pointer;
+    background: #FF4D4D;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.edit-btn:hover {
+    background: #FF6B6B;
+}
+
+/* Checkbox styling */
+.filter-options {
+    margin: 10px 0;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.checkbox-label {
+    margin-left: 8px;
+    min-width: 100px;
+    color: var(--color-text);
+}
+
+input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 3px;
+    background-color: var(--color-bg-light);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    position: relative;
+}
+
+input[type="checkbox"]:checked {
+    background-color: var(--color-primary);
+}
+
+input[type="checkbox"]:checked::after {
+    content: "✓";
+    font-size: 14px;
+    color: white;
+    position: absolute;
+    top: -1px;
+    left: 3px;
+}
+
+.player-edit-form .form-group {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.player-edit-form label {
+    display: flex;
+    align-items: center;
+    width: 130px; /* Fixed width for alignment */
+    text-align: right;
+    margin-bottom: 0;
+    font-weight: 500;
+    color: #e0e0e0;
+    padding-top: 10px; /* Vertically align with inputs */
+    flex-shrink: 0; /* Prevent label from shrinking */
+}
+
+.player-edit-form .field-container {
+    flex: 1; /* Take up remaining space */
+}
+
+/* Update existing input styling */
+.player-edit-form input[type="text"],
+.player-edit-form input[type="number"],
+.player-edit-form input[type="url"],
+.player-edit-form input[type="date"],
+.player-edit-form select,
+.player-edit-form textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #5C6270;
+    background-color: #3F444F;
+    color: #f3f6fa;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    height: 40px;
+    transition: border-color 0.2s ease;
+}
+
+/* Move error and help text under the input */
+.field-help,
+.field-errors {
+    margin-left: 0; /* Don't indent these */
+}
+
+/* Make form actions align with inputs */
+.form-actions {
+	display: flex;
+    margin-top: 16px;
+	justify-content: end;
+	align-items: center;
+	gap: 16px;
+}
+
+.form-actions .back-link {
+    color: #b9b9b9;
+    /* text-decoration: underline; */
+    transition: color 0.2s;
+}
+
+.form-actions .back-link:hover {
+    color: #f3f6fa;
+}
+
+.field-help {
+    font-size: 0.85rem;
+    color: #a0a0a0;
+    margin-top: 4px;
+}
+
+.field-errors {
+    color: #FF4D4D;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.player-edit-form select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23f3f6fa'%3E%3Cpath d='M8 10.5l4-4H4l4 4z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 30px;
+}
+
+.form-card {
+	max-width: 800px;
+	margin: 16px auto;
+}
+
+@media (max-width: 700px) {
+	.hide-mobile {
+		display: none;
+	}
+
+	.player-table td,
+	.player-table th {
+		padding: 8px;
+	}
+
+	.player-table {
+		font-size: 1rem;
+	}
+
+	.form-card {
+		margin: 8px;
+	}
+}

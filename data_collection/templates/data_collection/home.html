@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+    <div class="container">
+        {% if request.user.is_superuser %}
+            <div class="card">
+                <h2>Football Match Predictions</h2>
+
+                <form method="get" class="mb-4">
+                    <label for="id_match_date">Select a Match Date:</label>
+                    {{ form.match_date }}
+                    <button type="submit" class="btn btn-primary mt-2">Load Matches</button>
+                </form>
+
+                {% if matches %}
+                <h4>Matches on {{ selected_date }}</h4>
+                <div class="match-prediction-list">
+                {% for item in matches %}
+                    <div class="match-card">
+                        <div class="match-header">
+                            <div class="match-teams">{{ item.match.home_team.name }} vs {{ item.match.away_team.name }}</div>
+                            <div class="match-kickoff">Kickoff: {{ item.match.date|time:"H:i" }}</div>
+                        </div>
+                        <div class="match-details">                            
+                            <div class="result-container">
+                                <div class="result-label">Actual Result</div>
+                                {% if item.match.home_score is not None and item.match.away_score is not None %}
+                                    <div class="result-score">{{ item.match.home_score }} – {{ item.match.away_score }}</div>
+                                {% else %}
+                                    <div class="no-result">Match not played yet</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="team-sheets">
+                            <div class="team-sheet">
+                                <strong>{{ item.match.home_team.name }} Lineup</strong>
+                                <ul>
+                                {% for stat in item.home_players %}
+                                    <li>{{ stat.player.name }}{% if stat.player.position %} <span class="position">({{ stat.player.position }})</span>{% endif %}</li>
+                                {% endfor %}
+                                </ul>
+                            </div>
+
+                            <div class="team-sheet">
+                                <strong>{{ item.match.away_team.name }} Lineup</strong>
+                                <ul>
+                                {% for stat in item.away_players %}
+                                    <li>{{ stat.player.name }}{% if stat.player.position %} <span class="position">({{ stat.player.position }})</span>{% endif %}</li>
+                                {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="prediction-container">
+                            {% if item.prediction %}
+                                <div class="prediction-label">ML Prediction</div>
+                                <div class="prediction-outcome">
+                                    Predicted: <strong>{{ item.prediction.predicted_result|title }} Win</strong><br>
+                                    Confidence:
+                                    Home {{ item.prediction.confidence.home }}% /
+                                    Draw {{ item.prediction.confidence.draw }}% /
+                                    Away {{ item.prediction.confidence.away }}%
+                                </div>
+                            {% endif %}
+    
+                            <hr>
+
+                            {% if item.predicted_goals %}
+                                <div class="prediction-cluster">
+                                    <h6 class="prediction-header">Predicted Total Goals:</h6>
+                                    <p class="prediction-value">{{ item.predicted_goals }} {{ item.predicted_goals.confidence }}</p>
+                                </div>
+                            {% endif %}
+
+                            {% if item.score_prediction %}
+                                <div class="prediction-cluster">
+                                    <h6 class="prediction-header">Predicted Scoreline:</h6>
+                                    <p class="prediction-value">{{ item.score_prediction.0 }} – {{ item.score_prediction.1 }}</p>
+                                </div>
+                            {% endif %}
+
+                            <hr>
+
+                            {% if item.goal_bets %}
+                                {% for bet in item.goal_bets %}
+                                    <div class="prediction-cluster">
+                                        <h6 class="prediction-header">{{ bet.type }}</h6>
+                                        <p class="prediction-value">{{ bet.confidence }}%</p>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <p>No matches found for {{ selected_date }}.</p>
+            {% endif %}
+
+            </div>
+        {% else %}
+            <div class="card">
+                <h2>Access Denied</h2>
+                <p>You do not have permission to view this page.</p>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

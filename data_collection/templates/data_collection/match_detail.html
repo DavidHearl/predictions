@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/match_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+
+{% if request.user.is_superuser %}
+<div class="container">
+    <div class="card">
+        <div class="match-header">
+            <div class="match-meta">
+                <h1>Match Details</h1>
+                <div class="match-date">{{ match.date|date:"F d, Y - H:i" }}</div>
+                <div class="match-league">{{ match.league.name }} - {{ match.season.name }}</div>
+                <div class="match-venue">Venue: {{ match.venue }}</div>
+                {% if match.attendance %}
+                    <div class="match-attendance">Attendance: {{ match.attendance }}</div>
+                {% endif %}
+                {% if match.referee %}
+                    <div class="match-referee">Referee: {{ match.referee }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="match-result">
+            <div class="team home-team">
+                <div class="team-name">{{ match.home_team.name }}</div>
+                {% if home_stats and home_stats.expected_goals is not None %}
+                    <div class="team-xg">xG: {{ home_stats.expected_goals|floatformat:2 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="score-container">
+                {% if match.home_score is not None and match.away_score is not None %}
+                    <div class="score">{{ match.home_score }} - {{ match.away_score }}</div>
+                {% else %}
+                    <div class="score">vs</div>
+                {% endif %}
+            </div>
+            
+            <div class="team away-team">
+                <div class="team-name">{{ match.away_team.name }}</div>
+                {% if away_stats and away_stats.expected_goals is not None %}
+                    <div class="team-xg">xG: {{ away_stats.expected_goals|floatformat:2 }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Stats Section -->
+     <div class="card">
+        <h2>Team Statistics</h2>
+        <div class="stats-container">
+            {% if home_stats and away_stats %}
+                <div class="stat-row">
+                    <div class="stat-value">{{ home_stats.possession|default:"-"|floatformat:1 }}%</div>
+                    <div class="stat-name">Possession</div>
+                    <div class="stat-value">{{ away_stats.possession|default:"-"|floatformat:1 }}%</div>
+                </div>
+                
+                <div class="stat-row">
+                    <div class="stat-value">{{ home_stats.shots_on_target|default:"-" }}</div>
+                    <div class="stat-name">Shots on Target</div>
+                    <div class="stat-value">{{ away_stats.shots_on_target|default:"-" }}</div>
+                </div>
+                
+                <div class="stat-row">
+                    <div class="stat-value">{{ home_stats.total_shots|default:"-" }}</div>
+                    <div class="stat-name">Total Shots</div>
+                    <div class="stat-value">{{ away_stats.total_shots|default:"-" }}</div>
+                </div>
+                
+                <div class="stat-row">
+                    <div class="stat-value">{{ home_stats.passing_accuracy|default:"-"|floatformat:1 }}%</div>
+                    <div class="stat-name">Passing Accuracy</div>
+                    <div class="stat-value">{{ away_stats.passing_accuracy|default:"-"|floatformat:1 }}%</div>
+                </div>
+                
+                <!-- More stats rows here -->
+                <div class="stat-row">
+                    <div class="stat-value">{{ home_stats.fouls|default:"-" }}</div>
+                    <div class="stat-name">Fouls</div>
+                    <div class="stat-value">{{ away_stats.fouls|default:"-" }}</div>
+                </div>
+                
+                <div class="stat-row">
+                    <div class="stat-value">{{ home_stats.corners|default:"-" }}</div>
+                    <div class="stat-name">Corners</div>
+                    <div class="stat-value">{{ away_stats.corners|default:"-" }}</div>
+                </div>
+            {% else %}
+                <p>No detailed statistics available for this match.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Shots Section -->
+    <div class="table-card">
+        <div class="shots-container">
+            {% if shots %}
+                <table class="shots-table">
+                    <thead>
+                        <tr>
+                            <th>Minute</th>
+                            <th>Team</th>
+                            <th>Player</th>
+                            <th>Outcome</th>
+                            <th>xG</th>
+                            <th>Distance</th>
+                            <th>Body Part</th>
+                            <th>Assisted By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for shot in shots %}
+                            <tr class="{% if shot.outcome == goal %}goal{% endif %}">
+                                <td>{{ shot.minute }}</td>
+                                <td>{{ shot.team.name }}</td>
+                                <td>{{ shot.player.name|default:"Unknown" }}</td>
+                                <td>{{ shot.outcome|default:"-" }}</td>
+                                <td>{{ shot.expected_goals|floatformat:3 }}</td>
+                                <td>{{ shot.distance|floatformat:1 }}m</td>
+                                <td>{{ shot.body_part|default:"-" }}</td>
+                                <td>{{ shot.assisted_by.name|default:"-" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>No shot data available for this match.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="back-link">
+        <a href="{% url 'matches' %}">Back to Matches List</a>
+    </div>
+</div>
+{% else %}
+<div class="container">
+    <h2>Access Denied</h2>
+    <p>You do not have permission to view this page.</p>
+</div>
+{% endif %}
+{% endblock %}

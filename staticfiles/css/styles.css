@@ -1,0 +1,234 @@
+/* Reset some default styles */
+body, h1, h2, h3, h4, h5, h6, ul, ol, p, figure {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #102542;
+    color: #f3f6fa;
+    min-height: 100vh;
+}
+
+a {
+    color: #F87060;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+a:hover {
+    color: #ff9483;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 1em auto;
+    padding: 1.5em 2em;
+    background: #15355e;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #F87060;
+    margin-bottom: 0.9em;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+ul, ol {
+    border-radius: 8px;
+    padding: 1em 2em;
+    margin-bottom: 1.5em;
+}
+
+input, button, select, textarea {
+    background: #1a3c68;
+    color: #f3f6fa;
+    border: 1px solid #2c4d78;
+    border-radius: 6px;
+    padding: 0.6em 1em;
+    margin-bottom: 0.7em;
+    font-size: 1em;
+}
+
+input:focus, button:focus, select:focus, textarea:focus {
+    outline: 2px solid #F87060;
+    border-color: #F87060;
+}
+
+button {
+    background: #F87060;
+    color: #102542;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    transition: background 0.2s, transform 0.1s;
+    box-shadow: 0 2px 8px rgba(248, 112, 96, 0.2);
+}
+
+button:hover {
+    background: #ff9483;
+    color: #102542;
+}
+
+button:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 3px rgba(248, 112, 96, 0.2);
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    background: #15355e;
+}
+::-webkit-scrollbar-thumb {
+    background: #F87060;
+    border-radius: 5px;
+}
+
+/* Modern navigation bar */
+nav {
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
+    padding: 0;
+    margin-bottom: 2em;
+    background: #0d1f38;
+    border-bottom: 2px solid #F87060;
+}
+
+nav .nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8em 2em;
+}
+
+nav .brand {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #F87060;
+    letter-spacing: 0.03em;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    gap: 1em;
+    margin: 0;
+    padding: 0;
+}
+
+nav li {
+    display: inline;
+}
+
+nav a {
+    color: #f3f6fa;
+    font-weight: 500;
+    padding: 0.35em 0.7em;
+    border-radius: 4px;
+    transition: all 0.25s;
+}
+
+nav a:hover, nav a.active {
+    background: #F87060;
+    color: #102542;
+}
+
+/* Responsive nav */
+@media (max-width: 700px) {
+    .container {
+        padding: 1em;
+        margin: 0.5em;
+    }
+    nav .nav-container {
+        flex-direction: column;
+        gap: 0.7em;
+        padding: 1em 0.5em;
+    }
+    nav ul {
+        gap: 0.5em;
+    }
+}
+
+/* List styling */
+.player-row, .match-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8em 1em;
+    border-bottom: 1px solid #1a3c68;
+    background: #1a3c68;
+    margin-bottom: 0.6em;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.player-row:hover, .match-row:hover {
+    background: #234578;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.player-name a, .match-name a {
+    color: #F87060;
+    font-size: 1.08em;
+    font-weight: 500;
+}
+
+.player-edit, .match-edit {
+    margin-left: 1em;
+}
+
+.edit-btn {
+    background: #F87060;
+    color: #102542;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    padding: 0.35em 1.1em;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1em;
+    box-shadow: 0 2px 8px rgba(248, 112, 96, 0.2);
+    margin: 0;
+}
+
+.edit-btn:hover {
+    background: #ff9483;
+    color: #102542;
+}
+
+/* Pagination */
+.pagination {
+    margin-top: 1.5em;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1em;
+}
+
+.pagination a {
+    color: #F87060;
+    background: #1a3c68;
+    padding: 0.6em 1em;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.pagination a:hover {
+    background: #F87060;
+    color: #102542;
+    transform: translateY(-2px);
+}
+
+.pagination span {
+    color: #a9a9a9;
+    font-size: 1.05em;
+}

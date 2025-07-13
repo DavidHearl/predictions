@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/player_details.css' %}">
+{% endblock %}
+
+{% block content %}
+    {% if request.user.is_superuser %}
+    <div class="container">
+        <div class="card player-detail-card">
+            <div class="player-header">
+                <h1>{{ player.name }}</h1>
+                <a href="{% url 'player_edit' player.pk %}" class="edit-btn">Edit Player</a>
+            </div>
+            
+            <div class="player-info-grid">
+                <div class="info-item">
+                    <div class="info-label">Position</div>
+                    <div class="info-value">{{ player.position|default:"-" }}</div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-label">Nationality</div>
+                    <div class="info-value">{{ player.nationality|default:"-" }}</div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-label">Birth Date</div>
+                    <div class="info-value">{{ player.birth_date|default:"-" }}</div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-label">Height</div>
+                    <div class="info-value">{% if player.height %}{{ player.height }} cm{% else %}-{% endif %}</div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-label">Weight</div>
+                    <div class="info-value">{% if player.weight %}{{ player.weight }} kg{% else %}-{% endif %}</div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-label">Footed</div>
+                    <div class="info-value">{{ player.footed|default:"-" }}</div>
+                </div>
+            </div>
+            
+            <div class="additional-info">
+                <div class="info-item full-width">
+                    <div class="info-label">Unique Code</div>
+                    <div class="info-value">{{ player.unique_code|default:"-" }}</div>
+                </div>
+                
+                <div class="info-item full-width">
+                    <div class="info-label">Player URL</div>
+                    <div class="info-value url-value">
+                        {% if player.player_url %}
+                            <a href="{{ player.player_url }}" target="_blank" rel="noopener">{{ player.player_url }}</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="back-link">
+                <a href="{% url 'players' %}">Back to Players List</a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="container">
+        <h2>Access Denied</h2>
+        <p>You do not have permission to view this page.</p>
+    </div>
+    {% endif %}
+{% endblock %}

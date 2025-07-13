@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/team_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+{% if request.user.is_superuser %}
+<div class="container">
+    <div class="team-header">
+        <h1>{{ team.name }}</h1>
+        <div class="team-meta">
+            {% if team.country %}
+                <div class="team-country">{{ team.country }}</div>
+            {% endif %}
+            <div class="team-id">ID: {{ team.id }}</div>
+        </div>
+    </div>
+    
+    <!-- Team seasons -->
+    <div class="section-header">
+        <h2>Seasons</h2>
+    </div>
+    <div class="seasons-container">
+        {% if team_seasons %}
+            <div class="seasons-grid">
+                {% for club_season in team_seasons %}
+                    <div class="season-card">
+                        <div class="season-name">{{ club_season.season.name }}</div>
+                        <div class="season-league">{{ club_season.season.league.name }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-data">No season data available</div>
+        {% endif %}
+    </div>
+    
+    <!-- Team stats -->
+    <div class="section-header">
+        <h2>Average Statistics</h2>
+        <span class="section-info">(from recent matches)</span>
+    </div>
+    <div class="stats-container">
+        {% if avg_stats %}
+            <div class="stats-grid">
+                {% if avg_stats.possession %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ avg_stats.possession|floatformat:1 }}%</div>
+                    <div class="stat-label">Possession</div>
+                </div>
+                {% endif %}
+                
+                {% if avg_stats.total_shots %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ avg_stats.total_shots|floatformat:1 }}</div>
+                    <div class="stat-label">Shots per Game</div>
+                </div>
+                {% endif %}
+                
+                {% if avg_stats.shots_on_target %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ avg_stats.shots_on_target|floatformat:1 }}</div>
+                    <div class="stat-label">Shots on Target</div>
+                </div>
+                {% endif %}
+                
+                {% if avg_stats.pass_accuracy %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ avg_stats.pass_accuracy|floatformat:1 }}%</div>
+                    <div class="stat-label">Pass Accuracy</div>
+                </div>
+                {% endif %}
+                
+                {% if avg_stats.passes %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ avg_stats.passes|floatformat:0 }}</div>
+                    <div class="stat-label">Passes per Game</div>
+                </div>
+                {% endif %}
+                
+                {% if avg_stats.goals %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ avg_stats.goals|floatformat:1 }}</div>
+                    <div class="stat-label">Goals per Game</div>
+                </div>
+                {% endif %}
+                
+                {% if avg_stats.corners %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ avg_stats.corners|floatformat:1 }}</div>
+                    <div class="stat-label">Corners per Game</div>
+                </div>
+                {% endif %}
+                
+                {% if avg_stats.fouls %}
+                <div class="stat-card">
+                    <div class="stat-value">{{ avg_stats.fouls|floatformat:1 }}</div>
+                    <div class="stat-label">Fouls per Game</div>
+                </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="no-data">No statistics available</div>
+        {% endif %}
+    </div>
+    
+    <!-- Recent matches -->
+    <div class="section-header">
+        <h2>Recent Matches</h2>
+    </div>
+    <div class="recent-matches">
+        {% if recent_matches %}
+            {% for match in recent_matches %}
+                <div class="match-card">
+                    <div class="match-date">{{ match.date|date:"M d, Y" }}</div>
+                    <div class="match-teams">
+                        <div class="team home-team {% if match.home_team == team %}active-team{% endif %}">
+                            {{ match.home_team.name }}
+                        </div>
+                        <div class="match-score">
+                            {% if match.home_score is not None and match.away_score is not None %}
+                                {{ match.home_score }} - {{ match.away_score }}
+                            {% else %}
+                                vs
+                            {% endif %}
+                        </div>
+                        <div class="team away-team {% if match.away_team == team %}active-team{% endif %}">
+                            {{ match.away_team.name }}
+                        </div>
+                    </div>
+                    <div class="match-league">
+                        {{ match.league.name }}
+                    </div>
+                    <div class="match-actions">
+                        <a href="{% url 'match_detail' match.pk %}" class="match-link">View Match</a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-data">No recent matches found</div>
+        {% endif %}
+    </div>
+    
+    <!-- Team Players -->
+    <div class="section-header">
+        <h2>Players</h2>
+    </div>
+    <div class="players-container">
+        {% if players %}
+            <div class="players-grid">
+                {% for player in players %}
+                    <div class="player-card">
+                        <div class="player-name">
+                            <a href="{% url 'player_detail' player.pk %}">{{ player.name }}</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-data">No player data available</div>
+        {% endif %}
+    </div>
+    
+    <div class="back-link">
+        <a href="{% url 'teams' %}">Back to Teams List</a>
+    </div>
+</div>
+{% else %}
+    <div class="container">
+        <h2>Access Denied</h2>
+        <p>You do not have permission to view this page.</p>
+    </div>
+{% endif %}
+{% endblock %}
