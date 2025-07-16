@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
@@ -24,7 +25,7 @@ def train_goals_model(df=None):
     mae = mean_absolute_error(y_test, y_pred)
 
     print("Mean Absolute Error:", round(mae, 3))
-    joblib.dump(model, "goals_model.joblib")
+    joblib.dump(model, os.path.join(os.path.dirname(__file__), "result_model.joblib"))
     print("Model saved to goals_model.joblib")
 
 if __name__ == "__main__":

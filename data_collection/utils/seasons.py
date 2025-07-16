@@ -1,5 +1,6 @@
 from data_collection.models import Season
 
+
 def create_seasons(start="2020-2021", end="1995-1996"):
     """
     Creates Season entries in the format 'YYYY-YYYY' from the given start to end range.

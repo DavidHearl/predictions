@@ -77,6 +77,7 @@ class MatchShot(models.Model):
     match = models.ForeignKey(Match, on_delete=models.CASCADE)
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
     player = models.ForeignKey('Player', on_delete=models.SET_NULL, null=True, blank=True)
+    shots_not_available = models.BooleanField(default=True)
 
     minute = models.PositiveSmallIntegerField(null=True)
     expected_goals = models.FloatField(null=True)

@@ -22,9 +22,9 @@ def home(request):
     for match in matches:
         ml_prediction = predict_match_with_model(match)
         predicted_goals = predict_goals_for_match(match)
-        goal_bets = get_goal_bets(predicted_goals)
+        goal_bets = get_goal_bets(predicted_goals) if predicted_goals is not None else []
         score_prediction = None
-        if ml_prediction:
+        if ml_prediction and predicted_goals is not None:
             score_prediction = estimate_score(ml_prediction["predicted_result"], predicted_goals)
 
         # Get players per team for the match
@@ -47,19 +47,19 @@ def home(request):
             "prediction": ml_prediction,
             "home_players": home_players,
             "away_players": away_players,
-            "prediction": ml_prediction,
             "predicted_goals": predicted_goals,
             "goal_bets": goal_bets,
             "score_prediction": score_prediction,
         })
 
         bets = []
-        for threshold in [0.5, 1.5, 2.5, 3.5]:
-            confidence = round(min(abs(predicted_goals - threshold) / 2.5, 1.0) * 100, 1)
-            if predicted_goals > threshold:
-                bets.append({"type": f"Over {threshold} Goals", "confidence": confidence})
-            else:
-                bets.append({"type": f"Under {threshold} Goals", "confidence": confidence})
+        if predicted_goals is not None:
+            for threshold in [0.5, 1.5, 2.5, 3.5]:
+                confidence = round(min(abs(predicted_goals - threshold) / 2.5, 1.0) * 100, 1)
+                if predicted_goals > threshold:
+                    bets.append({"type": f"Over {threshold} Goals", "confidence": confidence})
+                else:
+                    bets.append({"type": f"Under {threshold} Goals", "confidence": confidence})
 
     context = {
         "form": form,

@@ -1,0 +1,293 @@
+.match-counts {
+    margin-top: 4px;
+    margin-bottom: 12px;
+    font-size: 1.1em;
+    color: #b9b9b9;
+}
+
+.filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: flex-end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    flex: 1;
+}
+
+.filter-group label {
+    margin-bottom: 4px;
+    font-size: 0.9em;
+    color: #F87060;
+    font-weight: 500;
+}
+
+/* Match the input style from players.css */
+.filter-group input,
+.filter-group select {
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #5C6270;
+    background-color: #3F444F;
+    color: #f3f6fa;
+    font-size: 0.95rem;
+}
+
+/* Button styling consistent with players page */
+.match-filter-form button {
+    padding: 8px 16px;
+    background: #FF4D4D;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.match-filter-form button:hover {
+    background: #FF6B6B;
+}
+
+.reset-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #3F444F;
+    color: #f3f6fa;
+    border-radius: 4px;
+    text-align: center;
+    transition: background 0.2s;
+    border: 1px solid #5C6270;
+}
+
+.reset-btn:hover {
+    background: #50545E;
+}
+
+.match-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.match-table thead {
+    background-color: #3F444F;
+}
+
+.match-table th,
+.match-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #5C6270;
+}
+
+.match-table th {
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.match-table tr:hover {
+    background-color: #50545E;
+}
+
+.match-date {
+    color: #FF4D4D;
+    font-weight: 500;
+}
+
+.match-score {
+    font-weight: bold;
+    text-align: center;
+}
+
+.score {
+    background: rgba(248, 112, 96, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+}
+
+.match-actions {
+    text-align: right;
+}
+
+.match-details-btn {
+    display: inline-block;
+    background: #FF4D4D;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    transition: background 0.2s ease;
+}
+
+.match-details-btn:hover {
+    background: #FF6B6B;
+}
+
+.no-matches {
+    padding: 20px;
+    text-align: center;
+    color: #a0a0a0;
+    font-size: 1.1em;
+}
+
+/* Pagination - match players.css */
+.pagination {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+}
+
+.pagination a {
+    display: inline-block;
+    background: #FF4D4D;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.pagination a:hover {
+    background: #FF6B6B;
+}
+
+/* Add winning team highlight - add these after your existing .home-team and .away-team classes */
+.winning-team {
+    color: #4CAF50; /* Green color for the winning team */
+    font-weight: 600;
+}
+
+.draw {
+    color: #FFC107; /* Amber/yellow color for draws */
+}
+
+/* Enhance the score display */
+.score {
+    background: rgba(248, 112, 96, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+}
+/* Add winning team highlight - add these after your existing .home-team and .away-team classes */
+.winning-team {
+    color: #4CAF50; /* Green color for the winning team */
+    font-weight: 600;
+}
+
+.draw {
+    color: #FFC107; /* Amber/yellow color for draws */
+}
+
+/* Enhance the score display */
+.score {
+    background: rgba(248, 112, 96, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* CSS for the mobile cards option */
+/* .desktop-table {
+    display: table;
+} */
+
+.mobile-matches {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .desktop-table {
+        display: none;
+    }
+    
+    .mobile-matches {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .match-card {
+        background: #1E2129;
+        border-radius: 8px;
+        margin: 8px;
+        overflow: hidden;
+    }
+    
+    .match-card-header {
+        background: #3F444F;
+        padding: 8px 12px;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .match-card-content {
+        padding: 12px;
+    }
+    
+    .teams {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        margin-bottom: 12px;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .home-team {
+        text-align: right;
+        padding-right: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .away-team {
+        text-align: left;
+        padding-left: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .score {
+        min-width: 60px;
+        padding: 4px 8px;
+        font-weight: bold;
+        text-align: center;
+        border-radius: 4px;
+        display: inline-block;
+        white-space: nowrap;
+    }
+    
+    .match-details-btn {
+        display: block;
+        width: 100%;
+        text-align: center;
+        margin-top: 12px;
+    }
+}
+
+/* Even smaller screens */
+@media (max-width: 480px) {
+    .match-table th,
+    .match-table td {
+        padding: 6px 4px;
+        font-size: 0.85rem;
+    }
+    
+    .match-details-btn {
+        padding: 3px 6px;
+        font-size: 0.8em;
+    }
+}

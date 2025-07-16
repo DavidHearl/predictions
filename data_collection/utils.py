@@ -6,7 +6,7 @@ import numpy as np
 import joblib
 import os
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "result_model.joblib")
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "prediction_engine", "result_model.joblib")
 model = joblib.load(MODEL_PATH)
 
 def get_team_form(team, before_date, is_home=None, n_matches=5):
@@ -27,6 +27,7 @@ def get_team_form(team, before_date, is_home=None, n_matches=5):
         tackles=Avg("tackles")
     )
 
+
 def extract_features_from_match(match):
     home = get_team_form(match.home_team, match.date, is_home=True)
     away = get_team_form(match.away_team, match.date, is_home=False)
@@ -40,6 +41,7 @@ def extract_features_from_match(match):
         away["xg"], away["xga"], away["pass_acc"], away["possession"],
         away["shots"], away["shots_on_target"], away["saves"], away["fouls"], away["tackles"],
     ])
+
 
 def predict_match_with_model(match):
     features = extract_features_from_match(match)
@@ -59,16 +61,18 @@ def predict_match_with_model(match):
         }
     }
 
+
 _goals_model = None
 
 def get_goals_model():
     global _goals_model
     if _goals_model is None:
-        path = os.path.join(os.path.dirname(__file__), "goals_model.joblib")
+        path = os.path.join(os.path.dirname(__file__), "..", "prediction_engine", "goals_model.joblib")
         if not os.path.exists(path):
             return None
         _goals_model = joblib.load(path)
     return _goals_model
+
 
 def predict_goals_for_match(match):
     features = extract_features_from_match(match)
@@ -81,6 +85,7 @@ def predict_goals_for_match(match):
 
     predicted_goals = model.predict([features])[0]
     return round(predicted_goals, 2)
+
 
 def pick_best_goal_bet(predicted_goals: float):
     if predicted_goals is None:

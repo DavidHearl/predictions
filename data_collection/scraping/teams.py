@@ -22,6 +22,9 @@ def build_season_urls():
     
     urls = []
     
+    # Identify current season (assuming it's the one with highest year)
+    current_season = seasons.order_by('-name').first()
+    
     for season in seasons:
         for league in leagues:
             # Replaces spaces in the league name with hyphens
@@ -29,7 +32,12 @@ def build_season_urls():
             season_str = season.name
             league_id = league.league_id
             
-            url = f"https://fbref.com/en/comps/{league_id}/{season_str}/{season_str}-{league_slug}-Stats"
+            # Special case for current season
+            if season == current_season:
+                url = f"https://fbref.com/en/comps/{league_id}/{league_slug}-Stats"
+            else:
+                url = f"https://fbref.com/en/comps/{league_id}/{season_str}/{season_str}-{league_slug}-Stats"
+            
             urls.append(url)
 
     return urls
@@ -43,6 +51,9 @@ def populate_team_data():
     """
     print("\n=== Starting Team Data Population ===")
     urls = build_season_urls()
+    
+    # Get the current season for reference
+    current_season = Season.objects.all().order_by('-name').first()
 
     skipped_urls = 0
     processed_urls = 0
@@ -54,22 +65,31 @@ def populate_team_data():
 
     for i, url in enumerate(urls, 1):
         try:
-            # Extract season name from URL
-            season_match = re.search(r"/(\d{4}-\d{4})/", url)
-            if not season_match:
-                print(f"[{i}/{total_urls}] Skipped – could not extract season from URL: {url}")
-                skipped_urls += 1
-                continue
-            season_name = season_match.group(1)
-
-            try:
-                season_obj = Season.objects.get(name=season_name)
-            except Season.DoesNotExist:
-                print(f"[{i}/{total_urls}] Skipped – season '{season_name}' not found in database")
-                skipped_urls += 1
-                continue
+            # Identify if this is a current season URL (without season in path)
+            is_current_season = "/comps/" in url and not re.search(r"/\d{4}-\d{4}/", url)
+            
+            if is_current_season:
+                # For current season URLs, use the current season directly
+                season_obj = current_season
+                season_name = season_obj.name
+            else:
+                # For past seasons, extract from URL
+                season_match = re.search(r"/(\d{4}-\d{4})/", url)
+                if not season_match:
+                    print(f"[{i}/{total_urls}] Skipped – could not extract season from URL: {url}")
+                    skipped_urls += 1
+                    continue
+                
+                season_name = season_match.group(1)
+                try:
+                    season_obj = Season.objects.get(name=season_name)
+                except Season.DoesNotExist:
+                    print(f"[{i}/{total_urls}] Skipped – season '{season_name}' not found in database")
+                    skipped_urls += 1
+                    continue
 
             # Extract league object
+            # Rest of the function remains the same
             league_obj = None
             for league in League.objects.all():
                 if league.name.replace(" ", "-") in url:

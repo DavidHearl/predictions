@@ -33,6 +33,7 @@ class Command(BaseCommand):
         # This function returns all URLs needed for the next step
         urls = build_season_urls()
         print(f"build_season_urls(): {len(urls)} urls generated")
+        print(f"Content in the scraping/matches.py")
 
         # Step 2: For each season-league URL, extract teams and their unique IDs
         # Populates the Team and ClubSeason models with team names, IDs, and league relationships

@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from django.db.models import Avg, Q
 from data_collection.models import Match, MatchTeamStat
 from datetime import timedelta
@@ -49,7 +50,7 @@ def train_model(df=None):
         from .build_dataset import build_dataset
         df = build_dataset()
 
-    print(f"✅ Dataset shape: {df.shape}")
+    print(f"Dataset shape: {df.shape}")
     df = df.dropna()
 
     X = df.drop(columns=["result", "total_goals"])
@@ -69,7 +70,7 @@ def train_model(df=None):
     print("Accuracy:", round(accuracy_score(y_test, y_pred) * 100, 2), "%")
 
     print("Saving model to result_model.joblib...")
-    joblib.dump(model, "result_model.joblib")
+    joblib.dump(model, os.path.join(os.path.dirname(__file__), "result_model.joblib"))
 
 if __name__ == "__main__":
     train_model()
