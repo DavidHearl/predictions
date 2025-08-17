@@ -5,3 +5,15 @@ __pycache__/
 .env
 .code
 data.json
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# venvs
+virtual_environment/
+.venv/
+venv/
