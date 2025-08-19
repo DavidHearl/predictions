@@ -5,68 +5,79 @@ from data_collection.scraping.matches import *
 
 
 class Command(BaseCommand):
-    help = "Scrapes football data from FBref including teams, players, and matches"
+    help = (
+        "Scrapes football data from FBref (teams, fixtures, players, matches). "
+        "Fixtures (URLs + tables) are obtained earlier in the pipeline so you can "
+        "see schedules and basic match data sooner."
+    )
+
+    def add_arguments(self, parser):
+        # Optional flags to run subsets without editing code
+        parser.add_argument("--only-fixtures", action="store_true",
+                            help="Run only fixture URL build + fixture table scrape.")
+        parser.add_argument("--from-fixtures", action="store_true",
+                            help="Start at fixtures (skip seasons/teams) and continue the normal flow from there.")
+        parser.add_argument("--no-process-matches", action="store_true",
+                            help="Skip processing detailed match pages (shots, stats, player performances).")
+        parser.add_argument("--no-players", action="store_true",
+                            help="Skip player URL/detail scraping.")
 
     def handle(self, *args, **options):
-        """
-        Executes the full scraping pipeline in sequence to collect football data.
-        
-        The pipeline is designed to be run in order, with each step building on the data
-        collected in previous steps. The intention is for repeated data to be quickly
-        identified and skipped to improve overall runtime.
-        
-        Pipeline steps:
-        1. Build season-league URLs - Generates URLs for each league in each season
-        2. Populate teams - Extracts team names and IDs from league pages
-        3. Build team URLs - Creates URLs for each team's season page
-        4. Extract player URLs - Collects player profile links from team pages
-        5. Populate player details - Scrapes detailed player information
-        6. Build fixture URLs - Creates URLs for match schedule pages
-        7. Get fixture tables - Extracts basic match information
-        8. Process match details - Collects comprehensive match statistics
-        """
-        
         print("\n=== Starting FBref Scraping Pipeline ===")
-        
-        # Step 1: Generate URLs for all season-league combinations
-        # Format: https://fbref.com/en/comps/<league_id>/<season>/<season>-<league>-Stats
-        # This function returns all URLs needed for the next step
-        urls = build_season_urls()
-        print(f"build_season_urls(): {len(urls)} urls generated")
-        print(f"Content in the scraping/matches.py")
 
-        # Step 2: For each season-league URL, extract teams and their unique IDs
-        # Populates the Team and ClubSeason models with team names, IDs, and league relationships
-        # Skips URLs where we already have the expected number of teams
-        populate_team_data()
+        only_fixtures = options["only_fixtures"]
+        from_fixtures = options["from_fixtures"]
+        no_process_matches = options["no_process_matches"]
+        no_players = options["no_players"]
 
-        # Step 3: Generate team-specific URLs for player data collection
-        # Uses the populated Team and ClubSeason information to build URLs for each team's season page
-        # Format: https://fbref.com/en/squads/<team_id>/<season>/<team_name>-Stats
-        team_urls = build_team_urls()
+        # ---------------------------------------------------------------------
+        # Step 0–2: Seasons/Teams (SKIP if starting from fixtures)
+        # ---------------------------------------------------------------------
+        if not (only_fixtures or from_fixtures):
+            # 1) Build season-league URLs
+            urls = build_season_urls()
+            print(f"build_season_urls(): {len(urls)} urls generated")
 
-        # Step 4: From each team URL, extract player profile links
-        # Creates Player records with names and URLs, to be populated with details later
-        # Avoids duplicate players by checking URLs against the database
-        extract_player_urls()
+            # 2) Populate team data (Team, ClubSeason, etc.)
+            populate_team_data()
 
-        # Step 5: For each player URL, collect detailed player information
-        # Scrapes player position, physical attributes, nationality, and demographics
-        # Updates existing Player records with the new information
-        populate_player_details()
-
-        # Step 6: Build fixture URLs for match data collection
-        # Format: https://fbref.com/en/comps/<league_id>/<season>/schedule/<season>-<league>-Scores-and-Fixtures
+        # ---------------------------------------------------------------------
+        # Step 3–4: FIXTURES moved up (URLs + tables)
+        # ---------------------------------------------------------------------
+        # 3) Build fixture URLs for each league/season
         fixture_urls = build_fixture_urls()
+        print(f"build_fixture_urls(): {len(fixture_urls)} fixture urls (new/total depending on implementation)")
 
-        # Step 7: Collect match basic information (dates, teams, scores)
-        # Populates the Match model with basic match data including dates, teams, scores, and venues
-        # Also extracts match detail URLs for the next step
+        # 4) Scrape fixture tables (dates, teams, scores, basic info)
         get_fixture_tables()
+        print("get_fixture_tables(): fixture tables collected")
 
-        # Step 8: Process match detail pages to extract comprehensive statistics
-        # Collects shots, team stats, and player performance data for each match
-        # Skips matches that already have complete data
-        process_all_matches()
-        
+        if only_fixtures:
+            print("\n=== Fixtures phase complete (per --only-fixtures) ===")
+            return
+
+        # ---------------------------------------------------------------------
+        # Step 5: Team URLs (for player scraping)
+        # ---------------------------------------------------------------------
+        # If we started from fixtures, we still need team URLs for players.
+        team_urls = build_team_urls()
+        print(f"build_team_urls(): {len(team_urls)} team urls (new/total depending on implementation)")
+
+        # ---------------------------------------------------------------------
+        # Step 6–7: Players (optional if you only care about fixtures now)
+        # ---------------------------------------------------------------------
+        if not no_players:
+            extract_player_urls()
+            populate_player_details()
+        else:
+            print("Skipping player scraping per --no-players")
+
+        # ---------------------------------------------------------------------
+        # Step 8: Match detail pages (optional if you don’t need deep stats now)
+        # ---------------------------------------------------------------------
+        if not no_process_matches:
+            process_all_matches()
+        else:
+            print("Skipping detailed match processing per --no-process-matches")
+
         print("\n=== FBref Scraping Pipeline Complete ===")

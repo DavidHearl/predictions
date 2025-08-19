@@ -10,7 +10,7 @@ from urllib.parse import quote
 from django.db import transaction
 
 
-SLEEP_TIME = 3.75  # Max requests 20 times per min
+SLEEP_TIME = 3.5  # Max requests 20 times per min
 
 
 def build_team_urls():

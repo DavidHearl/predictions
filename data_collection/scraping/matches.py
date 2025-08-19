@@ -2,6 +2,7 @@ import requests
 import time
 import re
 import os
+import logging
 
 from bs4 import BeautifulSoup, Comment, NavigableString
 from datetime import datetime
@@ -9,36 +10,51 @@ from django.db import transaction
 from django.utils import timezone
 from data_collection.models import *
 from pathlib import Path
+from django.db.models import Q
 
 
-SLEEP_TIME = 3.75  # Max requests 20 times per min
+SLEEP_TIME = 3.5  # Max requests 20 times per min
 
+# -------- logging setup (top of file, once) --------
+LOG_FILE = Path("scrape_fixtures_debug.log")
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+log = logging.getLogger("fixtures")
 
-def build_fixture_urls():
-    """
-    Constructs FBref fixture URLs for each season-league combination in the database.
-    Only returns raw URLs as strings.
-    """
-    urls = []
-    seasons = Season.objects.all()
-    leagues = League.objects.all()
+# -------- targeting (top of file, adjust as needed) --------
+TARGET_DATE = "2025-08-17"            # YYYY-MM-DD
+TARGET_HOME_CONTAINS = "manchester"   # case-insensitive contains
+TARGET_AWAY_CONTAINS = "arsenal"      # case-insensitive contains
 
-    for season in seasons:
-        for league in leagues:
-            league_slug = league.name.replace(" ", "-")
-            season_str = season.name
-            league_id = league.league_id
+def _norm(s):
+    return (s or "").strip().lower()
 
-            url = (
-                f"https://fbref.com/en/comps/{league_id}/{season_str}/schedule/"
-                f"{season_str}-{league_slug}-Scores-and-Fixtures"
-            )
-            urls.append(url)
+def _row_snapshot(row):
+    """Return a compact dict of what we see in the row for debugging."""
+    def cell(stat): 
+        td = row.find("td", {"data-stat": stat})
+        a = td.find("a") if td else None
+        href = a.get("href") if a else None
+        txt = a.get_text(strip=True) if a else (td.get_text(strip=True) if td else "")
+        return {"text": txt, "href": href}
+    return {
+        "date": (row.find("td", {"data-stat":"date"}).get_text(strip=True) if row.find("td", {"data-stat":"date"}) else ""),
+        "home": cell("home_team"),
+        "away": cell("away_team"),
+        "score": (row.find("td", {"data-stat":"score"}).get_text(strip=True) if row.find("td", {"data-stat":"score"}) else ""),
+        "notes": (row.find("td", {"data-stat":"notes"}).get_text(strip=True) if row.find("td", {"data-stat":"notes"}) else ""),
+        "match_report_href": (row.find("td", {"data-stat":"match_report"}).find("a").get("href")
+                              if row.find("td", {"data-stat":"match_report"}) and row.find("td", {"data-stat":"match_report"}).find("a") else None)
+    }
 
-    # for url in urls:
-    #     print(url)
-
-    return urls
+def _is_target_row(row):
+    snap = _row_snapshot(row)
+    if not snap["date"].startswith(TARGET_DATE):
+        return False
+    return (TARGET_HOME_CONTAINS in _norm(snap["home"]["text"])) and (TARGET_AWAY_CONTAINS in _norm(snap["away"]["text"]))
 
 
 def extract_team_name_from_href(td):
@@ -55,93 +71,249 @@ def extract_team_name_from_href(td):
         return None
 
 
+DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})")
+SQUAD_CODE_RE = re.compile(r"/squads/([\w\d]+)/")
+
+def _find_schedule_table(soup, season_name: str):
+    table = soup.find("table", id=lambda x: x and x.startswith("sched_") and season_name in x)
+    if table:
+        return table
+    for c in soup.find_all(string=lambda t: isinstance(t, Comment)):
+        csoup = BeautifulSoup(c, "html.parser")
+        table = csoup.find("table", id=lambda x: x and x.startswith("sched_") and season_name in x)
+        if table:
+            return table
+    return None
+
+def _parse_date(cell_text: str):
+    if not cell_text:
+        return None
+    m = DATE_RE.search(cell_text.strip())
+    if not m:
+        return None
+    try:
+        return datetime.strptime(m.group(1), "%Y-%m-%d")
+    except ValueError:
+        return None
+
+def _safe_int_text(text):
+    if not text:
+        return None
+    txt = text.strip().replace(",", "")
+    if not txt or txt in {"—", "-", "— —"}:
+        return None
+    try:
+        return int(txt)
+    except ValueError:
+        return None
+
+def _team_by_cell(td):
+    """
+    Resolve Team via unique_code from href (/en/squads/<code>/...), not by display name.
+    """
+    if not td:
+        return None
+    a = td.find("a")
+    if not a or not a.get("href"):
+        return None
+    m = SQUAD_CODE_RE.search(a["href"])
+    if not m:
+        return None
+    code = m.group(1)
+    return Team.objects.filter(unique_code=code).first()
+
+
+SQUAD_CODE_RE = re.compile(r"/squads/([\w\d]+)/")
+
+def _extract_team_code_and_name(td):
+    """Return (code, clean_name) from a team cell."""
+    if not td:
+        return (None, None)
+    a = td.find("a")
+    if not a or not a.get("href"):
+        return (None, None)
+    href = a["href"]
+    m = SQUAD_CODE_RE.search(href)
+    code = m.group(1) if m else None
+
+    # fall back to slug name (e.g. Newcastle-United-Stats -> Newcastle United)
+    team_slug = href.strip("/").split("/")[-1] if href else ""
+    clean_name = team_slug.replace("-Stats", "").replace("-", " ").strip() or (a.get_text(strip=True) or None)
+    return (code, clean_name)
+
+
+def _resolve_or_create_team(td):
+    """
+    Resolve Team via unique_code first, then by name (case-insensitive).
+    If missing, create it with whatever we have (keeps the fixture row).
+    """
+    code, name = _extract_team_code_and_name(td)
+    if code:
+        team = Team.objects.filter(unique_code=code).first()
+        if team:
+            # backfill name if empty or update if you prefer the FBref form
+            if not team.name and name:
+                team.name = name
+                team.save(update_fields=["name"])
+            return team
+
+    if name:
+        team = Team.objects.filter(name__iexact=name).first()
+        if team:
+            # backfill unique_code if we just learned it
+            if code and not getattr(team, "unique_code", None):
+                team.unique_code = code
+                team.save(update_fields=["unique_code"])
+            return team
+
+    # Create minimal record so we don't drop the match
+    if name or code:
+        team = Team.objects.create(
+            name=name or f"Unknown {code or ''}".strip(),
+            unique_code=code or ""
+        )
+        print(f"   + Created Team placeholder: name='{team.name}', code='{team.unique_code}'")
+        return team
+
+    return None
+
+
+def build_fixture_urls():
+    urls = []
+    leagues = League.objects.order_by("name")
+    seasons = list(Season.objects.all())
+    seasons.sort(key=lambda s: int(s.name.split("-")[0]), reverse=True)  # newest first
+    for season in seasons:
+        season_str = season.name
+        for league in leagues:
+            league_slug = league.name.replace(" ", "-")
+            urls.append(
+                f"https://fbref.com/en/comps/{league.league_id}/{season_str}/schedule/"
+                f"{season_str}-{league_slug}-Scores-and-Fixtures"
+            )
+    return urls
+
+
 def get_fixture_tables():
     """
-    Loops through all fixture URLs, extracts season/league from URL, and stores all matches to DB.
+    Scrape fixtures for all season/league URLs.
+    - Seasons ordered newest-first by build_fixture_urls()
+    - Skips HTML-comment wrapping by using _find_schedule_table()
+    - Uses strict score parsing (only pure 'd–d' becomes a score)
+    - Treats only real match report pages (/en/matches/...) as unique match_url
+      (ignores generic StatHead matchup links to avoid cross-fixture collisions)
+    - Upserts by match_url if real, otherwise by natural key:
+        (season, league, date, home_team, away_team)
+    - Emits rich debug logs and [TARGET] traces for the specified fixture
     """
+    def _is_real_match_report(href: str) -> bool:
+        # FBref real match pages look like /en/matches/<alnum>/... ; StatHead links are /en/stathead/...
+        return bool(href) and href.startswith("/en/matches/")
+
     urls = build_fixture_urls()
-    total_inserted = 0
-    total_skipped = 0
+
+    total_rows = total_inserted = 0
+    skips_date = skips_teams = 0
 
     for url in urls:
+        log.info(f"Fetching URL: {url}")
         print(f"Fetching: {url}")
         time.sleep(SLEEP_TIME)
-
         try:
             response = requests.get(url, timeout=10)
+            response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
 
-            # Extract identifiers from URL
+            # Identify season/league for this page
             parts = url.split("/")
             league_id = int(parts[5])
             season_name = parts[6]
-
             try:
                 season = Season.objects.get(name=season_name)
                 league = League.objects.get(league_id=league_id)
             except (Season.DoesNotExist, League.DoesNotExist):
+                log.warning(f"Missing Season/League: season={season_name}, league_id={league_id}")
                 print(f" - Skipping: missing Season or League ({season_name}, {league_id})")
                 continue
 
-            # Find schedule table
-            table = soup.find("table", id=lambda x: x and x.startswith("sched_") and season_name in x)
+            # Find the schedule table (works even if it's inside an HTML comment)
+            table = _find_schedule_table(soup, season_name)
             if not table:
+                log.warning("No schedule table found (possibly changed markup)")
                 print(" - No table found")
                 continue
 
             rows = table.find("tbody").find_all("tr")
+            rows = [r for r in rows if not (r.get("class") and "thead" in r.get("class"))]
+            total_rows += len(rows)
+
             count = 0
+            has_url = no_url = 0
 
-            for row in rows:
-                if row.get("class") and "thead" in row.get("class"):
-                    continue
-
+            for idx, row in enumerate(rows, start=1):
+                snap = _row_snapshot(row)
                 date_cell = row.find("td", {"data-stat": "date"})
-                if not date_cell or not date_cell.text.strip():
+                naive_date = _parse_date(date_cell.get_text() if date_cell else "")
+
+                if _is_target_row(row):
+                    log.info(f"[TARGET] Raw row snapshot: {snap}")
+
+                if not naive_date:
+                    skips_date += 1
+                    if _is_target_row(row):
+                        log.warning(f"[TARGET] Date parse failed for row: {snap}")
+                    continue
+                date = timezone.make_aware(naive_date)
+
+                # Resolve teams robustly (unique_code first, then name; create placeholder if needed)
+                home_team_td = row.find("td", {"data-stat": "home_team"})
+                away_team_td = row.find("td", {"data-stat": "away_team"})
+                home_team_obj = _resolve_or_create_team(home_team_td)
+                away_team_obj = _resolve_or_create_team(away_team_td)
+
+                if not home_team_obj or not away_team_obj:
+                    skips_teams += 1
+                    if _is_target_row(row):
+                        log.warning(f"[TARGET] Team resolve failed. snap={snap} "
+                                    f"home_team_obj={bool(home_team_obj)} away_team_obj={bool(away_team_obj)}")
                     continue
 
-                try:
-                    naive_date = datetime.strptime(date_cell.text.strip(), "%Y-%m-%d")
-                    date = timezone.make_aware(naive_date)
-                except ValueError:
-                    continue
+                # Strict score parse: only 'd–d' (no pens, P-P, TBD, extra text)
+                score_cell = row.find("td", {"data-stat": "score"})
+                score_text = score_cell.get_text(strip=True) if score_cell else ""
+                m = re.match(r"^\s*(\d+)\s*–\s*(\d+)\s*$", score_text)
+                home_score = int(m.group(1)) if m else None
+                away_score = int(m.group(2)) if m else None
 
-                home_team = extract_team_name_from_href(row.find("td", {"data-stat": "home_team"}))
-                away_team = extract_team_name_from_href(row.find("td", {"data-stat": "away_team"}))
-                if not home_team or not away_team:
-                    total_skipped += 1
-                    continue
+                # Other fields
+                attendance_cell = row.find("td", {"data-stat": "attendance"})
+                attendance = _safe_int_text(attendance_cell.get_text() if attendance_cell else None)
 
-                score_text = row.find("td", {"data-stat": "score"}).text.strip()
-                home_score, away_score = (None, None)
-                if "–" in score_text:
-                    try:
-                        home_score, away_score = map(int, score_text.split("–"))
-                    except ValueError:
-                        pass
+                venue_cell = row.find("td", {"data-stat": "venue"})
+                venue = venue_cell.get_text(strip=True) if venue_cell else ""
 
-                attendance = row.find("td", {"data-stat": "attendance"})
-                attendance = int(attendance.text.replace(",", "")) if attendance and attendance.text else None
+                referee_cell = row.find("td", {"data-stat": "referee"})
+                referee = referee_cell.get_text(strip=True) if referee_cell else ""
 
-                venue = row.find("td", {"data-stat": "venue"})
-                venue = venue.text.strip() if venue else ""
+                # Match report link: only treat real match pages as unique match_url
+                mr_cell = row.find("td", {"data-stat": "match_report"})
+                match_link = mr_cell.find("a") if mr_cell else None
+                href = match_link["href"] if match_link else None
+                match_url = f"https://fbref.com{href}" if _is_real_match_report(href) else None
+                if match_url: has_url += 1
+                else: no_url += 1
 
-                referee = row.find("td", {"data-stat": "referee"})
-                referee = referee.text.strip() if referee else ""
+                # Upsert: real match_url keyed by URL; otherwise use natural composite key
+                lookup = {"match_url": match_url} if match_url else {
+                    "season": season,
+                    "league": league,
+                    "date": date,
+                    "home_team": home_team_obj,
+                    "away_team": away_team_obj,
+                }
 
-                match_link = row.find("td", {"data-stat": "match_report"}).find("a")
-                match_url = f"https://fbref.com{match_link['href']}" if match_link else None
-
-                try:
-                    home_team_obj = Team.objects.get(name=home_team)
-                    away_team_obj = Team.objects.get(name=away_team)
-                except Team.DoesNotExist:
-                    print(f" - Skipping match: team not found - {home_team} vs {away_team}")
-                    total_skipped += 1
-                    continue
-
-                Match.objects.update_or_create(
-                    match_url=match_url,
+                obj, created = Match.objects.update_or_create(
+                    **lookup,
                     defaults={
                         "date": date,
                         "home_team": home_team_obj,
@@ -152,19 +324,31 @@ def get_fixture_tables():
                         "venue": venue,
                         "referee": referee,
                         "home_score": home_score,
-                        "away_score": away_score
+                        "away_score": away_score,
+                        "match_url": match_url,  # stays None until a real match report appears
                     }
                 )
-
                 count += 1
 
-            print(f" - Inserted or updated {count} matches")
-            total_inserted += count
+                # Extra logging for target
+                if _is_target_row(row):
+                    log.info(f"[TARGET] Upserted match id={obj.id} created={created} "
+                             f"date={obj.date} home={obj.home_team.name} away={obj.away_team.name} "
+                             f"score=({obj.home_score},{obj.away_score}) url={obj.match_url}")
+
+            print(f" - Inserted/updated {count} (rows seen: {len(rows)}; with URL: {has_url}, without URL: {no_url})")
+            log.info(f"Processed: season={season_name} league_id={league_id} "
+                     f"inserted/updated={count} rows_seen={len(rows)} with_url={has_url} without_url={no_url}")
 
         except Exception as e:
+            log.exception(f"Error processing URL: {url}")
             print(f" - Error processing {url}: {e}")
 
-    print(f"\nCompleted.\n - Matches added/updated: {total_inserted}\n - Matches skipped (teams not found or broken rows): {total_skipped}")
+    print(f"\nCompleted."
+          f"\n - Total rows seen: {total_rows}"
+          f"\n - Skipped (date): {skips_date}"
+          f"\n - Skipped (team): {skips_teams}"
+          f"\nLog written to: {LOG_FILE.resolve()}")
 
 
 # USED TO DOWNLOAD A MATCH PAGE TO PARSE THE SRTUCTURE. A URL IS REQUIRED TO RUN.
