@@ -11,4 +11,5 @@ urlpatterns = [
     path('shots/', views.shots, name='shots'),
     path('teams/', views.teams, name='teams'),
     path('teams/<int:pk>/', views.team_detail, name='team_detail'),
+    path('bets/', views.bets, name='bets'),
 ]

@@ -268,3 +268,37 @@ class Prediction(models.Model):
     model_name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
 
+
+class BettingAccount(models.Model):
+    name = models.CharField(max_length=100)
+    balance = models.FloatField(default=0.0)
+    starting_balance = models.FloatField(default=0.0)
+
+    def __str__(self):
+        return f"{self.name} (£{self.balance:.2f})"
+
+
+class Bet(models.Model):
+    BET_TYPE_CHOICES = [
+        ("over_0.5", "Over 0.5 Goals"),
+        ("over_1.5", "Over 1.5 Goals"),
+        ("under_4.5", "Under 4.5 Goals"),
+        ("under_5.5", "Under 5.5 Goals"),
+        ("home_win", "Home Win"),
+        ("away_win", "Away Win"),
+        ("draw", "Draw"),
+        ("btts", "Both Teams To Score"),
+        ("other", "Other"),
+    ]
+
+    account = models.ForeignKey(BettingAccount, on_delete=models.CASCADE, related_name="bets")
+    match = models.ForeignKey(Match, on_delete=models.CASCADE)
+    bet_type = models.CharField(max_length=20, choices=BET_TYPE_CHOICES)
+    fractional_odds = models.CharField(max_length=20, help_text="Enter odds as a fraction, e.g. 5/2")
+    stake = models.FloatField()
+    winnings = models.FloatField(null=True, blank=True)
+    bet_result = models.CharField(max_length=10, choices=[("win", "Win"), ("lose", "Lose"), ("pending", "Pending")], default="pending")
+    notes = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.account.name}: {self.get_bet_type_display()} ({self.bet_result})"

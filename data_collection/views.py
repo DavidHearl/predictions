@@ -406,3 +406,63 @@ def team_detail(request, pk):
             "avg_stats": avg_stats,
         }
     )
+
+def bets(request):
+    accounts = BettingAccount.objects.all().order_by('name')
+    teams = Team.objects.all().order_by('name')
+    bets_qs = Bet.objects.select_related('account', 'match').order_by('-id')
+
+    match = None
+    matches = None
+
+    # Handle bet creation
+    if request.method == "POST":
+        account_id = request.POST.get("account")
+        home_team_id = request.POST.get("home_team")
+        away_team_id = request.POST.get("away_team")
+        bet_type = request.POST.get("bet_type")
+        fractional_odds = request.POST.get("fractional_odds")
+        stake = float(request.POST.get("stake"))
+        winnings = request.POST.get("winnings") or None
+        bet_result = request.POST.get("bet_result")
+
+        match = Match.objects.filter(home_team_id=home_team_id, away_team_id=away_team_id).order_by('-date').first()
+        account = BettingAccount.objects.get(id=account_id)
+
+    if match and account:
+        bet = Bet.objects.create(
+            account=account,
+            match=match,
+            bet_type=bet_type,
+            fractional_odds=fractional_odds,
+            stake=stake,
+            winnings=winnings,
+            bet_result=bet_result,
+        )
+        # Update balance
+        if bet_result == "win" and winnings not in (None, "", "null"):
+            account.balance += float(winnings)
+        elif bet_result == "lose":
+            account.balance -= float(stake)
+        account.save()
+        return redirect("bets")
+
+    # Calculate balances for display
+    for account in accounts:
+        balance = account.starting_balance
+        for bet in account.bets.all():
+            if bet.bet_result == "win" and bet.winnings is not None:
+                balance += float(bet.winnings)
+            elif bet.bet_result == "lose":
+                balance -= bet.stake
+        account.calculated_balance = balance
+        
+    return render(
+        request,
+        "data_collection/bets.html",
+        {
+            "accounts": accounts,
+            "bets": bets_qs,
+            "teams": teams,
+        },
+    )

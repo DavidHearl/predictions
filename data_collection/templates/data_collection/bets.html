@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/bets.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Bets</h1>
+    <form method="post" class="bet-add-form">
+        {% csrf_token %}
+        <div class="filter-group">
+            <label for="account">Account:</label>
+            <select name="account" id="account" required>
+                {% for account in accounts %}
+                    <option value="{{ account.id }}">{{ account.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="home_team">Home Team:</label>
+            <select name="home_team" id="home_team" required>
+                {% for team in teams %}
+                    <option value="{{ team.id }}">{{ team.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="away_team">Away Team:</label>
+            <select name="away_team" id="away_team" required>
+                {% for team in teams %}
+                    <option value="{{ team.id }}">{{ team.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="bet_type">Bet Type:</label>
+            <select name="bet_type" id="bet_type" required>
+                {% for key, label in bets.model.BET_TYPE_CHOICES %}
+                    <option value="{{ key }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="fractional_odds">Fractional Odds:</label>
+            <input type="text" name="fractional_odds" id="fractional_odds" placeholder="e.g. 5/2" required>
+        </div>
+        <div class="filter-group">
+            <label for="stake">Stake:</label>
+            <input type="number" step="0.01" name="stake" id="stake" required>
+        </div>
+        <div class="filter-group">
+            <label for="winnings">Winnings:</label>
+            <input type="number" step="0.01" name="winnings" id="winnings">
+        </div>
+        <div class="filter-group">
+            <label for="bet_result">Result:</label>
+            <select name="bet_result" id="bet_result">
+                <option value="pending">Pending</option>
+                <option value="win">Win</option>
+                <option value="lose">Lose</option>
+            </select>
+        </div>
+        <button type="submit">Add Bet</button>
+    </form>
+
+    <div class="account-summary">
+        {% for account in accounts %}
+            {{ account.name }} - Balance: £{{ account.calculated_balance|floatformat:2 }}
+        {% endfor %}
+    </div>
+    <div class="table-card">
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th>Match</th>
+                    <th>Bet Type</th>
+                    <th>Odds</th>
+                    <th>Stake</th>
+                    <th>Winnings</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bet in bets %}
+                <tr class="{% if bet.bet_result == 'win' %}bet-win{% elif bet.bet_result == 'lose' %}bet-lose{% else %}bet-pending{% endif %}">
+                    <td>{{ bet.match }}</td>
+                    <td>{{ bet.get_bet_type_display }}</td>
+                    <td>{{ bet.fractional_odds }}</td>
+                    <td>£{{ bet.stake|floatformat:2 }}</td>
+                    <td>£{{ bet.winnings|floatformat:2 }}</td>
+                    <td>{{ bet.get_bet_result_display }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">No bets found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

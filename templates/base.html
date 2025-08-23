@@ -27,6 +27,7 @@
                     <li class="nav-item"><a href="{% url 'matches' %}" class="nav-link {% if request.resolver_match.url_name == 'matches' %}active{% endif %}">Matches</a></li>
                     <li class="nav-item"><a href="{% url 'shots' %}" class="nav-link {% if request.resolver_match.url_name == 'shots' %}active{% endif %}">Shots</a></li>
                     <li class="nav-item"><a href="{% url 'teams' %}" class="nav-link {% if request.resolver_match.url_name == 'teams' %}active{% endif %}">Teams</a></li>
+                    <li class="nav-item"><a href="{% url 'bets' %}" class="nav-link {% if request.resolver_match.url_name == 'bets' %}active{% endif %}">Bets</a></li>
                     {% if user.is_superuser %}
                         <li class="nav-item"><a href="{% url 'admin:index' %}" class="nav-link">Admin</a></li>
                     {% endif %}
