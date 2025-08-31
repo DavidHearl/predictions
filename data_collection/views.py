@@ -450,12 +450,33 @@ def bets(request):
     # Calculate balances for display
     for account in accounts:
         balance = account.starting_balance
+        pending_stake = 0.0
+        bets_placed = account.bets.count()
+        bets_won = account.bets.filter(bet_result="win").count()
+        bets_lost = account.bets.filter(bet_result="lose").count()
+        bets_pending = account.bets.filter(bet_result="pending").count()
+
         for bet in account.bets.all():
             if bet.bet_result == "win" and bet.winnings is not None:
                 balance += float(bet.winnings)
             elif bet.bet_result == "lose":
                 balance -= bet.stake
-        account.calculated_balance = balance
+            elif bet.bet_result == "pending":
+                pending_stake += bet.stake
+
+        # Stats
+        account.calculated_balance = balance - pending_stake
+        account.starting_balance_display = account.starting_balance
+        account.current_balance_display = balance - pending_stake
+        account.pending_stake = pending_stake
+        account.bets_placed = bets_placed
+        account.bets_won = bets_won
+        account.bets_lost = bets_lost
+        account.bets_pending = bets_pending
+        account.win_percentage = round((bets_won / (bets_won + bets_lost) * 100), 1) if (bets_won + bets_lost) > 0 else 0
+        account.returns = balance - account.starting_balance
+        account.returns_percentage = round((account.returns / account.starting_balance * 100), 1) if account.starting_balance > 0 else 0
+        account.returns_class = "returns-win" if account.returns >= 0 else "returns-loss"
         
     return render(
         request,

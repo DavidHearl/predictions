@@ -8,6 +8,45 @@
 {% block content %}
 <div class="container">
     <h1>Bets</h1>
+
+    <div class="dashboard-stats">
+        {% for account in accounts %}
+            <div class="stat-card">
+                <div class="stat-label">Starting Balance</div>
+                <div class="stat-value">£{{ account.starting_balance_display|floatformat:2 }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Current Balance</div>
+                <div class="stat-value">£{{ account.current_balance_display|floatformat:2 }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Pending Stake</div>
+                <div class="stat-value">£{{ account.pending_stake|floatformat:2 }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Bets Placed</div>
+                <div class="stat-value">{{ account.bets_placed }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Bets Won</div>
+                <div class="stat-value">{{ account.bets_won }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Bets Lost</div>
+                <div class="stat-value">{{ account.bets_lost }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Win %</div>
+                <div class="stat-value">{{ account.win_percentage }}%</div>
+            </div>
+            <div class="stat-card {% if account.returns >= 0 %}returns-win{% else %}returns-loss{% endif %}">
+                <div class="stat-label">Returns</div>
+                <div class="stat-value">£{{ account.returns|floatformat:2 }}</div>
+                <div class="stat-label">({{ account.returns_percentage }}%)</div>
+            </div>
+        {% endfor %}
+    </div>
+
     <form method="post" class="bet-add-form">
         {% csrf_token %}
         <div class="filter-group">
@@ -65,11 +104,6 @@
         <button type="submit">Add Bet</button>
     </form>
 
-    <div class="account-summary">
-        {% for account in accounts %}
-            {{ account.name }} - Balance: £{{ account.calculated_balance|floatformat:2 }}
-        {% endfor %}
-    </div>
     <div class="table-card">
         <table class="results-table">
             <thead>
