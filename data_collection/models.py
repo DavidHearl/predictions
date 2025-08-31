@@ -301,4 +301,4 @@ class Bet(models.Model):
     notes = models.TextField(blank=True)
 
     def __str__(self):
-        return f"{self.account.name}: {self.get_bet_type_display()} ({self.bet_result})"
+        return f"{self.match.home_team.name} vs {self.match.away_team.name}: {self.get_bet_type_display()} ({self.bet_result})"

@@ -8,13 +8,35 @@ from datetime import date, datetime, timedelta
 
 
 def home(request):
-    form = MatchPredictionDateForm(request.GET or None)
-
-    if form.is_valid():
-        selected_date_str = form.cleaned_data.get("match_date")
-        selected_date = date.fromisoformat(selected_date_str) if selected_date_str else date.today()
+    today = date.today()
+    # Get first and last match dates in DB
+    first_match = Match.objects.order_by("date__date").first()
+    last_match = Match.objects.order_by("-date__date").first()
+    if first_match and last_match:
+        first_day = first_match.date.date().replace(day=1)
+        last_day = last_match.date.date().replace(day=1)
+        last_day = (last_day + timedelta(days=32)).replace(day=1) - timedelta(days=1)
     else:
-        selected_date = date.today()
+        first_day = today.replace(day=1)
+        last_day = today.replace(day=1)
+
+    match_dates = (
+        Match.objects
+        .filter(date__date__gte=first_day, date__date__lte=last_day)
+        .order_by("date__date")
+        .values_list("date__date", flat=True)
+        .distinct()
+    )
+    match_dates_str = [d.strftime("%Y-%m-%d") for d in match_dates]
+
+    # Find next available match date
+    next_match_date = next((d for d in match_dates if d >= today), today)
+
+    selected_date_str = request.GET.get("match_date")
+    if selected_date_str:
+        selected_date = date.fromisoformat(selected_date_str)
+    else:
+        selected_date = next_match_date
 
     matches = Match.objects.filter(date__date=selected_date).order_by("date")
 
@@ -62,9 +84,11 @@ def home(request):
                     bets.append({"type": f"Under {threshold} Goals", "confidence": confidence})
 
     context = {
-        "form": form,
         "matches": match_data,
-        "selected_date": selected_date
+        "selected_date": selected_date,
+        "matches": match_data,
+        "selected_date": selected_date,
+        "match_dates": match_dates_str,
     }
 
     return render(request, "data_collection/home.html", context)

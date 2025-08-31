@@ -1,15 +1,26 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block extra_css %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        .flatpickr-day.match-day {
+            background: #9c281b !important;
+            color: #fff !important;
+            border-radius: 50% !important;
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}
+
 {% block content %}
     <div class="container">
         {% if request.user.is_superuser %}
             <div class="card">
                 <h2>Football Match Predictions</h2>
-
-                <form method="get" class="mb-4">
-                    <label for="id_match_date">Select a Match Date:</label>
-                    {{ form.match_date }}
+                <form method="get" class="mb-4" id="calendar-form">
+                    <label for="calendar-input">Select a Match Date:</label>
+                    <input type="text" id="calendar-input" name="match_date" value="{{ selected_date|date:'Y-m-d' }}" readonly>
                     <button type="submit" class="btn btn-primary mt-2">Load Matches</button>
                 </form>
 
@@ -107,4 +118,24 @@
             </div>
         {% endif %}
     </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var matchDates = {{ match_dates|safe }};
+        flatpickr("#calendar-input", {
+            dateFormat: "Y-m-d",
+            defaultDate: "{{ selected_date|date:'Y-m-d' }}",
+            showMonths: 3,
+            onDayCreate: function(dObj, dStr, fp, dayElem) {
+                var dateStr = dayElem.dateObj.toISOString().slice(0,10);
+                if (matchDates.indexOf(dateStr) !== -1) {
+                    dayElem.classList.add("match-day");
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}
