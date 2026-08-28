@@ -1,65 +1,76 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/players.css' %}">
-{% endblock %}
+{% block title %}Players{% endblock %}
 
 {% block content %}
-    {% if request.user.is_superuser %}
+    {% if can_view %}
         <div class="container">
+            <div class="page-head">
+                <div>
+                    <h1>Players <span class="count-chip">{{ filtered_count }} of {{ total_count }}</span></h1>
+                    <div class="page-sub">Player profiles scraped from FBref.</div>
+                </div>
+            </div>
+
             <div class="card">
-                <h1>Players</h1>
-
-                <div class="player-counts">Showing {{ page_obj.paginator.count }} players</div>
-
-                <form class="player-filter-form" method="get" id="player-search-form">
-                    <input type="text" name="q" placeholder="Search players..." value="{{ query }}" id="player-search-input">
-                    <div class="filter-options">
-                        <label class="checkbox-container">
+                <form class="filter-bar" method="get" id="player-search-form">
+                    <div class="control" style="flex: 1; min-width: 220px;">
+                        <label for="player-search-input">Search</label>
+                        <input type="text" name="q" placeholder="Search players..." value="{{ query }}" id="player-search-input">
+                    </div>
+                    <div class="control">
+                        <label>&nbsp;</label>
+                        <label style="display: inline-flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; font-size: 0.85rem; color: var(--color-text); cursor: pointer; padding: 8px 0;">
                             <input type="checkbox" name="missing_data" id="missing-data-checkbox" {% if missing_data %}checked{% endif %}>
-                            <span class="checkbox-label">Missing Data</span>
+                            Missing data only
                         </label>
                     </div>
                 </form>
             </div>
 
             <div class="table-card">
-                <table class="player-table">
+                <div class="table-scroll">
+                <table class="data-table">
                     <thead>
                         <tr>
                             <th>Name</th>
                             <th class="hide-mobile">Position</th>
                             <th class="hide-mobile">Nationality</th>
-                            <th class="hide-mobile">Birth Date</th>
-                            <th class="center">Actions</th>
+                            <th class="hide-mobile">Birth date</th>
+                            <th class="center"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for player in page_obj %}
                         <tr>
-                            <td><a href="{% url 'player_detail' player.pk %}">{{ player.name }}</a></td>
-                            <td class="hide-mobile">{{ player.position }}</td>
-                            <td class="hide-mobile">{{ player.nationality }}</td>
-                            <td class="hide-mobile">{{ player.birth_date }}</td>
+                            <td><a href="{% url 'player_detail' player.pk %}" class="strong">{{ player.name }}</a></td>
+                            <td class="hide-mobile">{% if player.position %}<span class="chip">{{ player.position }}</span>{% else %}<span class="muted">–</span>{% endif %}</td>
+                            <td class="hide-mobile">{{ player.nationality|default:"–" }}</td>
+                            <td class="hide-mobile muted">{{ player.birth_date|default:"–" }}</td>
                             <td class="center">
-                                <form action="{% url 'player_edit' player.pk %}" method="get">
-                                    <button type="submit" class="edit-btn">Edit</button>
-                                </form>
+                                <a href="{% url 'player_edit' player.pk %}" class="btn btn-ghost btn-sm">Edit</a>
                             </td>
                         </tr>
+                        {% empty %}
+                        <tr><td colspan="5">
+                            <div class="empty-state">
+                                <span class="empty-icon">&#128100;</span>
+                                No players found.
+                            </div>
+                        </td></tr>
                         {% endfor %}
                     </tbody>
-
                 </table>
+                </div>
 
                 <div class="pagination">
                     {% if page_obj.has_previous %}
-                        <a href="?q={{ request.GET.q }}&missing_data={% if missing_data %}on{% endif %}&page={{ page_obj.previous_page_number }}">Previous</a>
+                        <a href="?q={{ request.GET.q }}&missing_data={% if missing_data %}on{% endif %}&page={{ page_obj.previous_page_number }}">&larr; Previous</a>
                     {% endif %}
                     <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
                     {% if page_obj.has_next %}
-                        <a href="?q={{ request.GET.q }}&missing_data={% if missing_data %}on{% endif %}&page={{ page_obj.next_page_number }}">Next</a>
+                        <a href="?q={{ request.GET.q }}&missing_data={% if missing_data %}on{% endif %}&page={{ page_obj.next_page_number }}">Next &rarr;</a>
                     {% endif %}
                 </div>
             </div>
@@ -67,11 +78,14 @@
 
     {% else %}
         <div class="container">
-            <h2>Access Denied</h2>
-            <p>You do not have permission to view this page.</p>
+            <div class="card empty-state">
+                <span class="empty-icon">&#128274;</span>
+                <h2>Access denied</h2>
+                <p>You do not have permission to view this page.</p>
+            </div>
         </div>
     {% endif %}
-        
+
 {% endblock %}
 
 {% block extra_js %}
@@ -80,36 +94,20 @@
             const searchInput = document.getElementById('player-search-input');
             const searchForm = document.getElementById('player-search-form');
             const missingDataCheckbox = document.getElementById('missing-data-checkbox');
+            if (!searchInput || !searchForm) return;
             let typingTimer;
-            const doneTypingInterval = 250; // Wait 250ms after user stops typing
 
-            // Auto-focus the search input when page loads and place cursor at end
-            if (searchInput) {
-                searchInput.focus();
-                // Place cursor at the end of the input text
-                const inputLength = searchInput.value.length;
-                searchInput.setSelectionRange(inputLength, inputLength);
-            }
+            searchInput.focus();
+            const inputLength = searchInput.value.length;
+            searchInput.setSelectionRange(inputLength, inputLength);
 
-            // Function to submit the form
-            function submitSearch() {
-                searchForm.submit();
-            }
-
-            // Event listener for input changes
             searchInput.addEventListener('input', function() {
                 clearTimeout(typingTimer);
-                typingTimer = setTimeout(submitSearch, doneTypingInterval);
+                typingTimer = setTimeout(function() { searchForm.submit(); }, 300);
             });
 
-            // Clear the timer if the user continues typing
-            searchInput.addEventListener('keydown', function() {
-                clearTimeout(typingTimer);
-            });
-            
-            // Submit form when checkbox is clicked
             if (missingDataCheckbox) {
-                missingDataCheckbox.addEventListener('change', submitSearch);
+                missingDataCheckbox.addEventListener('change', function() { searchForm.submit(); });
             }
         });
     </script>

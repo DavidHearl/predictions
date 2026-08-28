@@ -1,16 +1,10 @@
-import requests
 import re
-import time
 
 from bs4 import BeautifulSoup
-from collections import Counter
 from data_collection.models import *
-from urllib.parse import quote
+from .http import fetch
 
 
-# Define Global Variables
-SLEEP_TIME = 3.5 # Max requests 20 times per min
-        
 
 def build_season_urls():
     """
@@ -115,7 +109,10 @@ def populate_team_data():
             processed_urls += 1
             print(f"[{i}/{total_urls}] Processing: {season_name} {league_obj.name}")
 
-            response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+            response = fetch(url)
+            if response is None:
+                print(f"[{i}/{total_urls}] Could not fetch {url} (fbref may be blocking automated requests)")
+                continue
             soup = BeautifulSoup(response.content, "html.parser")
 
             team_data = []
@@ -170,7 +167,7 @@ def populate_team_data():
             print(f"[{i}/{total_urls}] Error processing {url}: {e}")
             continue
 
-        time.sleep(SLEEP_TIME)
+
 
     # Final summary
     print(f"\n=== Team Data Population Complete ===")

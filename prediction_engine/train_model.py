@@ -1,76 +1,55 @@
-import pandas as pd
 import os
-from django.db.models import Avg, Q
-from data_collection.models import Match, MatchTeamStat
-from datetime import timedelta
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+
 import joblib
-from data_collection.models import Match
-from collections import defaultdict
-from .build_dataset import *
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+from .build_dataset import build_dataset
+
+FEATURE_META_COLUMNS = ["result", "total_goals", "match_date"]
 
 
-def get_form_stats(team, before_date, is_home=None, n_matches=5):
-    filters = Q(match__date__lt=before_date, team=team)
-    if is_home is not None:
-        filters &= Q(is_home=is_home)
-
-    stats = (
-        MatchTeamStat.objects
-        .filter(filters)
-        .order_by('-match__date')[:n_matches]
-    )
-
-    return stats.aggregate(
-        xg=Avg("expected_goals"),
-        xga=Avg("expected_goals_against"),
-        pass_acc=Avg("passing_accuracy"),
-        possession=Avg("possession"),
-        shots=Avg("total_shots"),
-        shots_on_target=Avg("shots_on_target"),
-        saves=Avg("saves"),
-        fouls=Avg("fouls"),
-        tackles=Avg("tackles")
-    )
-
-
-def label_result(home_score, away_score):
-    if home_score > away_score:
-        return 0  # home win
-    elif home_score < away_score:
-        return 2  # away win
-    else:
-        return 1  # draw
+def time_ordered_split(df, test_fraction=0.2):
+    """Chronological split: train on the past, evaluate on the most recent matches.
+    A random split would leak future form into the training set and overstate accuracy."""
+    df = df.sort_values("match_date")
+    cutoff = int(len(df) * (1 - test_fraction))
+    return df.iloc[:cutoff], df.iloc[cutoff:]
 
 
 def train_model(df=None):
     if df is None:
-        from .build_dataset import build_dataset
         df = build_dataset()
 
-    print(f"Dataset shape: {df.shape}")
     df = df.dropna()
+    print(f"Dataset shape after dropping incomplete rows: {df.shape}")
+    if len(df) < 200:
+        print("Not enough complete rows to train the result model - skipping.")
+        return None
 
-    X = df.drop(columns=["result", "total_goals"])
-    y = df["result"]
-
-    print("Splitting dataset...")
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y)
+    train_df, test_df = time_ordered_split(df)
+    X_train = train_df.drop(columns=FEATURE_META_COLUMNS)
+    y_train = train_df["result"]
+    X_test = test_df.drop(columns=FEATURE_META_COLUMNS)
+    y_test = test_df["result"]
 
     print("Training RandomForestClassifier...")
-    model = RandomForestClassifier(n_estimators=300, max_depth=12, random_state=42)
+    model = RandomForestClassifier(
+        n_estimators=300, max_depth=12, random_state=42, class_weight="balanced_subsample"
+    )
     model.fit(X_train, y_train)
 
-    print("Evaluating...")
+    print("Evaluating on the most recent 20% of matches...")
     y_pred = model.predict(X_test)
-    print(classification_report(y_test, y_pred))
+    print(classification_report(y_test, y_pred, zero_division=0))
     print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
     print("Accuracy:", round(accuracy_score(y_test, y_pred) * 100, 2), "%")
 
-    print("Saving model to result_model.joblib...")
-    joblib.dump(model, os.path.join(os.path.dirname(__file__), "result_model.joblib"))
+    path = os.path.join(os.path.dirname(__file__), "result_model.joblib")
+    joblib.dump(model, path)
+    print(f"Model saved to {path}")
+    return model
+
 
 if __name__ == "__main__":
     train_model()

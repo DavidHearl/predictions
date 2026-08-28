@@ -1,150 +1,213 @@
 {% extends "base.html" %}
 {% load static %}
+{% load prediction_extras %}
+
+{% block title %}{{ match.home_team.name }} v {{ match.away_team.name }}{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/match_detail.css' %}">
+    <link rel="stylesheet" href="{% static 'css/predictions.css' %}">
 {% endblock %}
 
 {% block content %}
 
-{% if request.user.is_superuser %}
+{% if can_view %}
 <div class="container">
-    <div class="card">
-        <div class="match-header">
-            <div class="match-meta">
-                <h1>Match Details</h1>
-                <div class="match-date">{{ match.date|date:"F d, Y - H:i" }}</div>
-                <div class="match-league">{{ match.league.name }} - {{ match.season.name }}</div>
-                <div class="match-venue">Venue: {{ match.venue }}</div>
-                {% if match.attendance %}
-                    <div class="match-attendance">Attendance: {{ match.attendance }}</div>
-                {% endif %}
-                {% if match.referee %}
-                    <div class="match-referee">Referee: {{ match.referee }}</div>
-                {% endif %}
+
+    <div class="card match-hero">
+        <div class="match-hero-top">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <span class="league-chip">{{ match.league.name }}</span>
+                <span class="chip">{{ match.season.name }}</span>
+            </div>
+            <div class="match-hero-meta">
+                <span>{{ match.date|date:"l d F Y · H:i" }}</span>
+                {% if match.venue %}<span>&#127967; {{ match.venue }}</span>{% endif %}
+                {% if match.attendance %}<span>&#128101; {{ match.attendance }}</span>{% endif %}
+                {% if match.referee %}<span>&#127988; {{ match.referee }}</span>{% endif %}
             </div>
         </div>
-    </div>
 
-    <div class="card">
-        <div class="match-result">
-            <div class="team home-team">
-                <div class="team-name">{{ match.home_team.name }}</div>
+        <div class="match-hero-teams">
+            <div class="hero-team home">
+                <a href="{% url 'team_detail' match.home_team.id %}" class="team-name">{{ match.home_team.name }}</a>
                 {% if home_stats and home_stats.expected_goals is not None %}
-                    <div class="team-xg">xG: {{ home_stats.expected_goals|floatformat:2 }}</div>
+                    <span class="team-xg">xG {{ home_stats.expected_goals|floatformat:2 }}</span>
                 {% endif %}
             </div>
-            
-            <div class="score-container">
-                {% if match.home_score is not None and match.away_score is not None %}
-                    <div class="score">{{ match.home_score }} - {{ match.away_score }}</div>
-                {% else %}
-                    <div class="score">vs</div>
-                {% endif %}
-            </div>
-            
-            <div class="team away-team">
-                <div class="team-name">{{ match.away_team.name }}</div>
+
+            {% if match.is_played %}
+                <div class="hero-score">{{ match.home_score }} – {{ match.away_score }}</div>
+            {% else %}
+                <div class="hero-score upcoming">{{ match.date|date:"H:i" }}</div>
+            {% endif %}
+
+            <div class="hero-team away">
+                <a href="{% url 'team_detail' match.away_team.id %}" class="team-name">{{ match.away_team.name }}</a>
                 {% if away_stats and away_stats.expected_goals is not None %}
-                    <div class="team-xg">xG: {{ away_stats.expected_goals|floatformat:2 }}</div>
+                    <span class="team-xg">xG {{ away_stats.expected_goals|floatformat:2 }}</span>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <!-- Team Stats Section -->
-     <div class="card">
-        <h2>Team Statistics</h2>
-        <div class="stats-container">
-            {% if home_stats and away_stats %}
-                <div class="stat-row">
-                    <div class="stat-value">{{ home_stats.possession|default:"-"|floatformat:1 }}%</div>
-                    <div class="stat-name">Possession</div>
-                    <div class="stat-value">{{ away_stats.possession|default:"-"|floatformat:1 }}%</div>
+    {% if prediction %}
+    <div class="card">
+        <h2>Model prediction</h2>
+        <div style="margin: 14px 0;">
+            <div class="prob-bar" title="Model probabilities: home / draw / away">
+                <div class="prob-seg prob-home" style="width: {% widthratio prediction.prob_home 1 100 %}%">
+                    <span>{{ prediction.prob_home|percent }}</span>
                 </div>
-                
-                <div class="stat-row">
-                    <div class="stat-value">{{ home_stats.shots_on_target|default:"-" }}</div>
-                    <div class="stat-name">Shots on Target</div>
-                    <div class="stat-value">{{ away_stats.shots_on_target|default:"-" }}</div>
+                <div class="prob-seg prob-draw" style="width: {% widthratio prediction.prob_draw 1 100 %}%">
+                    <span>{{ prediction.prob_draw|percent }}</span>
                 </div>
-                
-                <div class="stat-row">
-                    <div class="stat-value">{{ home_stats.total_shots|default:"-" }}</div>
-                    <div class="stat-name">Total Shots</div>
-                    <div class="stat-value">{{ away_stats.total_shots|default:"-" }}</div>
+                <div class="prob-seg prob-away" style="width: {% widthratio prediction.prob_away 1 100 %}%">
+                    <span>{{ prediction.prob_away|percent }}</span>
                 </div>
-                
-                <div class="stat-row">
-                    <div class="stat-value">{{ home_stats.passing_accuracy|default:"-"|floatformat:1 }}%</div>
-                    <div class="stat-name">Passing Accuracy</div>
-                    <div class="stat-value">{{ away_stats.passing_accuracy|default:"-"|floatformat:1 }}%</div>
-                </div>
-                
-                <!-- More stats rows here -->
-                <div class="stat-row">
-                    <div class="stat-value">{{ home_stats.fouls|default:"-" }}</div>
-                    <div class="stat-name">Fouls</div>
-                    <div class="stat-value">{{ away_stats.fouls|default:"-" }}</div>
-                </div>
-                
-                <div class="stat-row">
-                    <div class="stat-value">{{ home_stats.corners|default:"-" }}</div>
-                    <div class="stat-name">Corners</div>
-                    <div class="stat-value">{{ away_stats.corners|default:"-" }}</div>
-                </div>
-            {% else %}
-                <p>No detailed statistics available for this match.</p>
+            </div>
+            <div class="prob-legend">
+                <span>{{ match.home_team.name }}</span><span>Draw</span><span>{{ match.away_team.name }}</span>
+            </div>
+        </div>
+        <div class="match-meta-row">
+            <div class="meta-cluster">
+                <span class="meta-label">Expected goals</span>
+                <span class="meta-value tnum">{{ prediction.predicted_home_score|floatformat:2 }} – {{ prediction.predicted_away_score|floatformat:2 }}</span>
+            </div>
+            {% if prediction.market_probs.top_scores %}
+            <div class="meta-cluster">
+                <span class="meta-label">Most likely scores</span>
+                <span class="meta-value">
+                    {% for s in prediction.market_probs.top_scores %}
+                        <span class="scoreline">{{ s.score }} <em>{{ s.prob|percent }}</em></span>
+                    {% endfor %}
+                </span>
+            </div>
+            {% endif %}
+            {% if prediction.market_probs.btts_yes %}
+            <div class="meta-cluster">
+                <span class="meta-label">Both teams to score</span>
+                <span class="meta-value tnum">{{ prediction.market_probs.btts_yes|percent }}</span>
+            </div>
             {% endif %}
         </div>
-    </div>
 
-    <!-- Shots Section -->
-    <div class="table-card">
-        <div class="shots-container">
-            {% if shots %}
-                <table class="shots-table">
-                    <thead>
-                        <tr>
-                            <th>Minute</th>
-                            <th>Team</th>
-                            <th>Player</th>
-                            <th>Outcome</th>
-                            <th>xG</th>
-                            <th>Distance</th>
-                            <th>Body Part</th>
-                            <th>Assisted By</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for shot in shots %}
-                            <tr class="{% if shot.outcome == goal %}goal{% endif %}">
-                                <td>{{ shot.minute }}</td>
-                                <td>{{ shot.team.name }}</td>
-                                <td>{{ shot.player.name|default:"Unknown" }}</td>
-                                <td>{{ shot.outcome|default:"-" }}</td>
-                                <td>{{ shot.expected_goals|floatformat:3 }}</td>
-                                <td>{{ shot.distance|floatformat:1 }}m</td>
-                                <td>{{ shot.body_part|default:"-" }}</td>
-                                <td>{{ shot.assisted_by.name|default:"-" }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>No shot data available for this match.</p>
-            {% endif %}
+        {% if markets %}
+        <div class="table-scroll" style="margin-top: 16px;">
+        <table class="data-table value-table">
+            <thead>
+                <tr>
+                    <th>Market</th>
+                    <th class="center">Tier</th>
+                    <th class="num" title="Raw model probability">Model</th>
+                    <th class="num" title="Model blended with the de-margined market price">Blended</th>
+                    <th class="num" title="Probability implied by the odds">Implied</th>
+                    <th class="num">Odds</th>
+                    <th class="num">Edge</th>
+                    {% if not match.is_played %}<th></th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in markets %}
+                <tr class="{% if m.value %}value-row{% endif %}">
+                    <td class="strong">{{ m.market }}</td>
+                    <td class="center">{% if m.tier %}<span class="tier-badge tier-{{ m.tier }}">{{ m.tier }}</span>{% endif %}</td>
+                    <td class="num">{{ m.model_prob|percent }}</td>
+                    <td class="num strong">{{ m.bet_prob|percent }}</td>
+                    <td class="num muted">{{ m.implied_prob|percent }}</td>
+                    <td class="num">{{ m.odds|floatformat:2 }}{% if m.best_odds %}<span class="muted best-odds"> ({{ m.best_odds|floatformat:2 }})</span>{% endif %}</td>
+                    <td class="num">
+                        <span class="edge-badge {% if m.edge > 0 %}edge-pos{% else %}edge-neg{% endif %}">{{ m.edge|signed_percent }}</span>
+                    </td>
+                    {% if not match.is_played %}
+                    <td class="center">
+                        {% if m.value %}
+                        <a class="slip-btn" href="{% url 'bets' %}?match={{ match.id }}&bet_type={{ m.bet_type }}&odds={{ m.odds|floatformat:2 }}&kelly={{ m.kelly }}#bet-slip">+ Slip</a>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if h2h_rows %}
+    <div class="card">
+        <h2>Team statistics</h2>
+        <div style="margin-top: 10px;">
+            {% for row in h2h_rows %}
+            <div class="h2h-row">
+                <div class="h2h-val home">{{ row.home|floatformat:row.decimals }}</div>
+                <div class="h2h-mid">
+                    <div class="h2h-label">{{ row.label }}</div>
+                    <div class="h2h-track">
+                        <div class="h2h-fill-home" style="width: {{ row.home_pct }}%;"></div>
+                        <div class="h2h-gap"></div>
+                        <div class="h2h-fill-away" style="width: {{ row.away_pct }}%;"></div>
+                    </div>
+                </div>
+                <div class="h2h-val away">{{ row.away|floatformat:row.decimals }}</div>
+            </div>
+            {% endfor %}
         </div>
     </div>
-    
-    <div class="back-link">
-        <a href="{% url 'matches' %}">Back to Matches List</a>
+    {% elif match.is_played %}
+    <div class="card">
+        <h2>Team statistics</h2>
+        <div class="empty-state">No detailed statistics recorded for this match.</div>
+    </div>
+    {% endif %}
+
+    {% if shots %}
+    <div class="table-card">
+        <div class="table-scroll">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Min</th>
+                    <th>Team</th>
+                    <th>Player</th>
+                    <th>Outcome</th>
+                    <th class="num">xG</th>
+                    <th class="num hide-mobile">Distance</th>
+                    <th class="hide-mobile">Body part</th>
+                    <th class="hide-mobile">Assisted by</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for shot in shots %}
+                    <tr class="{% if shot.outcome == 'Goal' %}goal-row{% endif %}">
+                        <td class="num">{{ shot.minute }}'</td>
+                        <td>{{ shot.team.name }}</td>
+                        <td>{% if shot.player %}<a href="{% url 'player_detail' shot.player.pk %}">{{ shot.player.name }}</a>{% else %}Unknown{% endif %}</td>
+                        <td class="shot-outcome">{{ shot.outcome|default:"-" }}</td>
+                        <td class="num">{{ shot.expected_goals|floatformat:2 }}</td>
+                        <td class="num hide-mobile">{{ shot.distance|floatformat:1 }}m</td>
+                        <td class="hide-mobile">{{ shot.body_part|default:"-" }}</td>
+                        <td class="hide-mobile">{% if shot.assisted_by %}{{ shot.assisted_by.name }}{% else %}-{% endif %}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <div style="margin: 18px 0;">
+        <a href="{% url 'matches' %}" class="btn btn-ghost">&larr; Back to matches</a>
     </div>
 </div>
 {% else %}
 <div class="container">
-    <h2>Access Denied</h2>
-    <p>You do not have permission to view this page.</p>
+    <div class="card empty-state">
+        <span class="empty-icon">&#128274;</span>
+        <h2>Access denied</h2>
+        <p>You do not have permission to view this page.</p>
+    </div>
 </div>
 {% endif %}
 {% endblock %}

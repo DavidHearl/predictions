@@ -1,141 +1,129 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/matches.css' %}">
-{% endblock %}
+{% block title %}Matches{% endblock %}
 
 {% block content %}
-{% if request.user.is_superuser %}
+{% if can_view %}
 <div class="container">
-    <div class="card">
-        <h1>Matches</h1>
-        <div class="match-counts">
-            <span>Total matches: {{ total_count }}</span>
-            {% if selected_season or selected_team or date_from or date_to %}
-                <span> | Filtered: {{ filtered_count }}</span>
-            {% endif %}
+    <div class="page-head">
+        <div>
+            <h1>Matches <span class="count-chip">{{ filtered_count }} of {{ total_count }}</span></h1>
+            <div class="page-sub">Every fixture in the database — click through for stats, predictions and odds.</div>
         </div>
-        
-        <form method="get">
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label for="season">Season:</label>
-                    <select name="season" id="season">
-                        <option value="">All Seasons</option>
-                        {% for season in seasons %}
-                            <option value="{{ season.id }}" {% if selected_season|floatformat:"0" == season.id|floatformat:"0" %}selected{% endif %}>{{ season.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label for="team">Team:</label>
-                    <select name="team" id="team">
-                        <option value="">All Teams</option>
-                        {% for team in teams %}
-                            <option value="{{ team.id }}" {% if selected_team|floatformat:"0" == team.id|floatformat:"0" %}selected{% endif %}>{{ team.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+    </div>
+
+    <div class="card">
+        <form method="get" class="filter-bar">
+            <div class="control">
+                <label for="season">Season</label>
+                <select name="season" id="season">
+                    <option value="">All seasons</option>
+                    {% for season in seasons %}
+                        <option value="{{ season.id }}" {% if selected_season == season.id|stringformat:"s" %}selected{% endif %}>{{ season.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
-            
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label for="from">From Date:</label>
-                    <input type="date" name="from" id="from" value="{{ date_from }}">
-                </div>
-                
-                <div class="filter-group">
-                    <label for="to">To Date:</label>
-                    <input type="date" name="to" id="to" value="{{ date_to }}">
-                </div>
-                
-                <button type="submit">Apply Filters</button>
-                <a href="{% url 'matches' %}" class="reset-btn">Reset</a>
+            <div class="control">
+                <label for="league">League</label>
+                <select name="league" id="league">
+                    <option value="">All leagues</option>
+                    {% for league in leagues %}
+                        <option value="{{ league.id }}" {% if selected_league == league.id|stringformat:"s" %}selected{% endif %}>{{ league.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="control">
+                <label for="team">Team</label>
+                <select name="team" id="team">
+                    <option value="">All teams</option>
+                    {% for team in teams %}
+                        <option value="{{ team.id }}" {% if selected_team == team.id|stringformat:"s" %}selected{% endif %}>{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="control">
+                <label for="from">From</label>
+                <input type="date" name="from" id="from" value="{{ date_from|default:'' }}">
+            </div>
+            <div class="control">
+                <label for="to">To</label>
+                <input type="date" name="to" id="to" value="{{ date_to|default:'' }}">
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                <a href="{% url 'matches' %}" class="btn btn-ghost">Reset</a>
             </div>
         </form>
     </div>
 
-    <div class="table-card desktop-table">
-        <table class="match-table">
+    <div class="table-card">
+        <div class="table-scroll">
+        <table class="data-table">
             <thead>
                 <tr>
                     <th>Date</th>
-                    <th>League</th>
-                    <th>Home Team</th>
-                    <th>Score</th>
-                    <th>Away Team</th>
-                    <th class="center">Actions</th>
+                    <th class="hide-mobile">League</th>
+                    <th style="text-align: right;">Home</th>
+                    <th class="center">Score</th>
+                    <th>Away</th>
+                    <th class="center hide-mobile"></th>
                 </tr>
             </thead>
             <tbody>
                 {% for match in matches %}
                 <tr>
-                    <td class="match-date">{{ match.date|date:"M d, Y" }}</td>
-                    <td>{{ match.league.name }}</td>
-                    <td class="home-team {% if match.home_score is not None and match.away_score is not None %}{% if match.home_score > match.away_score %}winning-team{% elif match.home_score == match.away_score %}draw{% endif %}{% endif %}">{{ match.home_team.name }}</td>
-                    <td class="match-score">
-                        {% if match.home_score is not None and match.away_score is not None %}
-                            <span class="score">{{ match.home_score }} - {{ match.away_score }}</span>
-                        {% else %}
-                            <span class="score">vs</span>
-                        {% endif %}
+                    <td class="nowrap muted">{{ match.date|date:"D d M Y" }}</td>
+                    <td class="hide-mobile"><span class="league-chip">{{ match.league.name }}</span></td>
+                    <td style="text-align: right;" class="{% if match.is_played and match.home_score > match.away_score %}strong{% endif %}">
+                        <a href="{% url 'team_detail' match.home_team.id %}" style="color: inherit;">{{ match.home_team.name }}</a>
                     </td>
-                    <td class="away-team {% if match.home_score is not None and match.away_score is not None %}{% if match.away_score > match.home_score %}winning-team{% elif match.home_score == match.away_score %}draw{% endif %}{% endif %}">{{ match.away_team.name }}</td>
-                    <td class="match-actions center">
-                        <a href="{% url 'match_detail' match.pk %}" class="match-details-btn">Details</a>
+                    <td class="center">
+                        <a href="{% url 'match_detail' match.pk %}">
+                            {% if match.is_played %}
+                                <span class="score-pill">{{ match.home_score }}–{{ match.away_score }}</span>
+                            {% else %}
+                                <span class="score-pill upcoming">{{ match.date|time:"H:i" }}</span>
+                            {% endif %}
+                        </a>
+                    </td>
+                    <td class="{% if match.is_played and match.away_score > match.home_score %}strong{% endif %}">
+                        <a href="{% url 'team_detail' match.away_team.id %}" style="color: inherit;">{{ match.away_team.name }}</a>
+                    </td>
+                    <td class="center hide-mobile">
+                        <a href="{% url 'match_detail' match.pk %}" class="btn btn-ghost btn-sm">Details</a>
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="6" class="no-matches">No matches found matching your criteria.</td>
-                </tr>
+                <tr><td colspan="6">
+                    <div class="empty-state">
+                        <span class="empty-icon">&#9917;</span>
+                        No matches found matching your criteria.
+                    </div>
+                </td></tr>
                 {% endfor %}
             </tbody>
         </table>
-        
+        </div>
+
         <div class="pagination">
             {% if page_obj.has_previous %}
-                <a href="?season={{ selected_season }}&team={{ selected_team }}&from={{ date_from }}&to={{ date_to }}&page={{ page_obj.previous_page_number }}">Previous</a>
+                <a href="?season={{ selected_season|default:'' }}&league={{ selected_league|default:'' }}&team={{ selected_team|default:'' }}&from={{ date_from|default:'' }}&to={{ date_to|default:'' }}&page={{ page_obj.previous_page_number }}">&larr; Previous</a>
             {% endif %}
             <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
             {% if page_obj.has_next %}
-                <a href="?season={{ selected_season }}&team={{ selected_team }}&from={{ date_from }}&to={{ date_to }}&page={{ page_obj.next_page_number }}">Next</a>
+                <a href="?season={{ selected_season|default:'' }}&league={{ selected_league|default:'' }}&team={{ selected_team|default:'' }}&from={{ date_from|default:'' }}&to={{ date_to|default:'' }}&page={{ page_obj.next_page_number }}">Next &rarr;</a>
             {% endif %}
         </div>
-    </div>
-
-    <!-- Mobile cards, only shown on small screens -->
-    <div class="mobile-matches">
-        {% for match in matches %}
-        <div class="match-card">
-            <div class="match-card-header">
-                <span class="match-date">{{ match.date|date:"M d, Y" }}</span>
-                <span class="match-league">{{ match.league.name }}</span>
-            </div>
-            <div class="match-card-content">
-                <div class="teams">
-                    <span class="home-team {% if match.home_score is not None and match.away_score is not None %}{% if match.home_score > match.away_score %}winning-team{% endif %}{% endif %}">{{ match.home_team.name }}</span>
-                    {% if match.home_score is not None and match.away_score is not None %}
-                        <span class="score">{{ match.home_score }} - {{ match.away_score }}</span>
-                    {% else %}
-                        <span class="score">vs</span>
-                    {% endif %}
-                    <span class="away-team {% if match.home_score is not None and match.away_score is not None %}{% if match.away_score > match.home_score %}winning-team{% endif %}{% endif %}">{{ match.away_team.name }}</span>
-                </div>
-                <a href="{% url 'match_detail' match.pk %}" class="match-details-btn">Details</a>
-            </div>
-        </div>
-        {% empty %}
-        <div class="no-matches">No matches found matching your criteria.</div>
-        {% endfor %}
     </div>
 </div>
 {% else %}
     <div class="container">
-        <h2>Access Denied</h2>
-        <p>You do not have permission to view this page.</p>
+        <div class="card empty-state">
+            <span class="empty-icon">&#128274;</span>
+            <h2>Access denied</h2>
+            <p>You do not have permission to view this page.</p>
+        </div>
     </div>
 {% endif %}
 {% endblock %}

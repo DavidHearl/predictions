@@ -1,60 +1,13 @@
-import requests
-import time
 import re
-import os
 import logging
 
-from bs4 import BeautifulSoup, Comment, NavigableString
+from bs4 import BeautifulSoup, Comment
 from datetime import datetime
-from django.db import transaction
 from django.utils import timezone
 from data_collection.models import *
-from pathlib import Path
-from django.db.models import Q
+from .http import fetch
 
-
-SLEEP_TIME = 3.5  # Max requests 20 times per min
-
-# -------- logging setup (top of file, once) --------
-LOG_FILE = Path("scrape_fixtures_debug.log")
-logging.basicConfig(
-    filename=LOG_FILE,
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s"
-)
-log = logging.getLogger("fixtures")
-
-# -------- targeting (top of file, adjust as needed) --------
-TARGET_DATE = "2025-08-17"            # YYYY-MM-DD
-TARGET_HOME_CONTAINS = "manchester"   # case-insensitive contains
-TARGET_AWAY_CONTAINS = "arsenal"      # case-insensitive contains
-
-def _norm(s):
-    return (s or "").strip().lower()
-
-def _row_snapshot(row):
-    """Return a compact dict of what we see in the row for debugging."""
-    def cell(stat): 
-        td = row.find("td", {"data-stat": stat})
-        a = td.find("a") if td else None
-        href = a.get("href") if a else None
-        txt = a.get_text(strip=True) if a else (td.get_text(strip=True) if td else "")
-        return {"text": txt, "href": href}
-    return {
-        "date": (row.find("td", {"data-stat":"date"}).get_text(strip=True) if row.find("td", {"data-stat":"date"}) else ""),
-        "home": cell("home_team"),
-        "away": cell("away_team"),
-        "score": (row.find("td", {"data-stat":"score"}).get_text(strip=True) if row.find("td", {"data-stat":"score"}) else ""),
-        "notes": (row.find("td", {"data-stat":"notes"}).get_text(strip=True) if row.find("td", {"data-stat":"notes"}) else ""),
-        "match_report_href": (row.find("td", {"data-stat":"match_report"}).find("a").get("href")
-                              if row.find("td", {"data-stat":"match_report"}) and row.find("td", {"data-stat":"match_report"}).find("a") else None)
-    }
-
-def _is_target_row(row):
-    snap = _row_snapshot(row)
-    if not snap["date"].startswith(TARGET_DATE):
-        return False
-    return (TARGET_HOME_CONTAINS in _norm(snap["home"]["text"])) and (TARGET_AWAY_CONTAINS in _norm(snap["away"]["text"]))
+log = logging.getLogger("scraping.fbref")
 
 
 def extract_team_name_from_href(td):
@@ -197,14 +150,13 @@ def build_fixture_urls():
 def get_fixture_tables():
     """
     Scrape fixtures for all season/league URLs.
-    - Seasons ordered newest-first by build_fixture_urls()
     - Skips HTML-comment wrapping by using _find_schedule_table()
     - Uses strict score parsing (only pure 'd–d' becomes a score)
     - Treats only real match report pages (/en/matches/...) as unique match_url
       (ignores generic StatHead matchup links to avoid cross-fixture collisions)
-    - Upserts by match_url if real, otherwise by natural key:
-        (season, league, date, home_team, away_team)
-    - Emits rich debug logs and [TARGET] traces for the specified fixture
+    - Upserts by natural key (season, league, home_team, away_team) FIRST so a
+      fixture saved before its match report existed gains the match_url instead
+      of being duplicated; falls back to match_url lookup for older rows.
     """
     def _is_real_match_report(href: str) -> bool:
         # FBref real match pages look like /en/matches/<alnum>/... ; StatHead links are /en/stathead/...
@@ -212,16 +164,16 @@ def get_fixture_tables():
 
     urls = build_fixture_urls()
 
-    total_rows = total_inserted = 0
+    total_rows = 0
     skips_date = skips_teams = 0
 
     for url in urls:
-        log.info(f"Fetching URL: {url}")
         print(f"Fetching: {url}")
-        time.sleep(SLEEP_TIME)
+        response = fetch(url)
+        if response is None:
+            print(" - Could not fetch (fbref may be blocking automated requests - see log)")
+            continue
         try:
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
 
             # Identify season/league for this page
@@ -248,34 +200,20 @@ def get_fixture_tables():
             total_rows += len(rows)
 
             count = 0
-            has_url = no_url = 0
 
-            for idx, row in enumerate(rows, start=1):
-                snap = _row_snapshot(row)
+            for row in rows:
                 date_cell = row.find("td", {"data-stat": "date"})
                 naive_date = _parse_date(date_cell.get_text() if date_cell else "")
-
-                if _is_target_row(row):
-                    log.info(f"[TARGET] Raw row snapshot: {snap}")
-
                 if not naive_date:
                     skips_date += 1
-                    if _is_target_row(row):
-                        log.warning(f"[TARGET] Date parse failed for row: {snap}")
                     continue
                 date = timezone.make_aware(naive_date)
 
                 # Resolve teams robustly (unique_code first, then name; create placeholder if needed)
-                home_team_td = row.find("td", {"data-stat": "home_team"})
-                away_team_td = row.find("td", {"data-stat": "away_team"})
-                home_team_obj = _resolve_or_create_team(home_team_td)
-                away_team_obj = _resolve_or_create_team(away_team_td)
-
+                home_team_obj = _resolve_or_create_team(row.find("td", {"data-stat": "home_team"}))
+                away_team_obj = _resolve_or_create_team(row.find("td", {"data-stat": "away_team"}))
                 if not home_team_obj or not away_team_obj:
                     skips_teams += 1
-                    if _is_target_row(row):
-                        log.warning(f"[TARGET] Team resolve failed. snap={snap} "
-                                    f"home_team_obj={bool(home_team_obj)} away_team_obj={bool(away_team_obj)}")
                     continue
 
                 # Strict score parse: only 'd–d' (no pens, P-P, TBD, extra text)
@@ -285,13 +223,10 @@ def get_fixture_tables():
                 home_score = int(m.group(1)) if m else None
                 away_score = int(m.group(2)) if m else None
 
-                # Other fields
                 attendance_cell = row.find("td", {"data-stat": "attendance"})
                 attendance = _safe_int_text(attendance_cell.get_text() if attendance_cell else None)
-
                 venue_cell = row.find("td", {"data-stat": "venue"})
                 venue = venue_cell.get_text(strip=True) if venue_cell else ""
-
                 referee_cell = row.find("td", {"data-stat": "referee"})
                 referee = referee_cell.get_text(strip=True) if referee_cell else ""
 
@@ -300,45 +235,40 @@ def get_fixture_tables():
                 match_link = mr_cell.find("a") if mr_cell else None
                 href = match_link["href"] if match_link else None
                 match_url = f"https://fbref.com{href}" if _is_real_match_report(href) else None
-                if match_url: has_url += 1
-                else: no_url += 1
 
-                # Upsert: real match_url keyed by URL; otherwise use natural composite key
-                lookup = {"match_url": match_url} if match_url else {
-                    "season": season,
-                    "league": league,
-                    "date": date,
-                    "home_team": home_team_obj,
-                    "away_team": away_team_obj,
-                }
+                # Natural key first: each pairing occurs once per season per league,
+                # regardless of whether the row was first created with or without a URL
+                # (or by the football-data importer).
+                obj = Match.objects.filter(
+                    season=season, league=league,
+                    home_team=home_team_obj, away_team=away_team_obj,
+                ).first()
+                if obj is None and match_url:
+                    obj = Match.objects.filter(match_url=match_url).first()
 
-                obj, created = Match.objects.update_or_create(
-                    **lookup,
-                    defaults={
-                        "date": date,
-                        "home_team": home_team_obj,
-                        "away_team": away_team_obj,
-                        "season": season,
-                        "league": league,
-                        "attendance": attendance,
-                        "venue": venue,
-                        "referee": referee,
-                        "home_score": home_score,
-                        "away_score": away_score,
-                        "match_url": match_url,  # stays None until a real match report appears
-                    }
-                )
+                created = obj is None
+                if created:
+                    obj = Match(season=season, league=league,
+                                home_team=home_team_obj, away_team=away_team_obj)
+
+                obj.date = date
+                if home_score is not None:
+                    obj.home_score = home_score
+                    obj.away_score = away_score
+                if attendance is not None:
+                    obj.attendance = attendance
+                if venue:
+                    obj.venue = venue
+                if referee:
+                    obj.referee = referee
+                if match_url:
+                    obj.match_url = match_url
+                obj.save()
                 count += 1
 
-                # Extra logging for target
-                if _is_target_row(row):
-                    log.info(f"[TARGET] Upserted match id={obj.id} created={created} "
-                             f"date={obj.date} home={obj.home_team.name} away={obj.away_team.name} "
-                             f"score=({obj.home_score},{obj.away_score}) url={obj.match_url}")
-
-            print(f" - Inserted/updated {count} (rows seen: {len(rows)}; with URL: {has_url}, without URL: {no_url})")
+            print(f" - Inserted/updated {count} of {len(rows)} rows")
             log.info(f"Processed: season={season_name} league_id={league_id} "
-                     f"inserted/updated={count} rows_seen={len(rows)} with_url={has_url} without_url={no_url}")
+                     f"inserted/updated={count} rows_seen={len(rows)}")
 
         except Exception as e:
             log.exception(f"Error processing URL: {url}")
@@ -347,8 +277,7 @@ def get_fixture_tables():
     print(f"\nCompleted."
           f"\n - Total rows seen: {total_rows}"
           f"\n - Skipped (date): {skips_date}"
-          f"\n - Skipped (team): {skips_teams}"
-          f"\nLog written to: {LOG_FILE.resolve()}")
+          f"\n - Skipped (team): {skips_teams}")
 
 
 # USED TO DOWNLOAD A MATCH PAGE TO PARSE THE SRTUCTURE. A URL IS REQUIRED TO RUN.
@@ -386,25 +315,45 @@ def get_fixture_tables():
 #         return None
 
 
-def process_all_matches():
-    matches = Match.objects.exclude(match_url__isnull=True).exclude(match_url="").order_by("date")
+def process_all_matches(limit=None, skip_processed=True):
+    """Scrape detail pages (shots, team stats, player stats) for played matches.
+
+    Previously this re-fetched every match with a URL on every run; now matches
+    that already have shot data are skipped by default, and unplayed matches
+    are never fetched.
+    """
+    matches = (
+        Match.objects.exclude(match_url__isnull=True).exclude(match_url="")
+        .filter(home_score__isnull=False)
+        .order_by("date")
+    )
+    if skip_processed:
+        processed_ids = MatchShot.objects.values_list("match_id", flat=True).distinct()
+        matches = matches.exclude(id__in=processed_ids)
+    if limit:
+        matches = matches[:limit]
+
     total = matches.count()
+    consecutive_failures = 0
 
     for i, match in enumerate(matches, start=1):
         print(f"\n[{i} / {total}] Fetching: {match.match_url}")
-        time.sleep(SLEEP_TIME)
+        response = fetch(match.match_url)
+        if response is None:
+            consecutive_failures += 1
+            print(f" - Could not fetch match {match.id}")
+            if consecutive_failures >= 5:
+                print("Aborting: fbref appears to be blocking requests (5 consecutive failures).")
+                break
+            continue
+        consecutive_failures = 0
 
         try:
-            response = requests.get(match.match_url, timeout=10)
-            response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
-
             extract_match_shots(soup, match)
             extract_match_team_stats(soup, match)
             extract_match_player_stats(soup, match)
-
             print(f"Match {match.id} processed.")
-
         except Exception as e:
             print(f"Error processing match {match.id}: {e}")
 
@@ -676,7 +625,6 @@ def extract_match_player_stats(soup, match):
         "passing__passes_pct_long": "long_passes_percentage",
 
         # Passing Types
-        "passing__key_passes": "key_passes",
         "passing_types__passes_live": "live_passes",
         "passing_types__passes_dead": "dead_passes",
         "passing_types__passes_free_kicks": "free_kicks",
@@ -742,7 +690,6 @@ def extract_match_player_stats(soup, match):
         "misc__ball_recoveries": "balls_recovered",
         "misc__aerials_won": "aerials_won",
         "misc__aerials_lost": "aerials_lost",
-        "misc__aerials_won_pct": "aerials_won_percentage",  
         "misc__aerials_won_pct": "aerial_win_percentage",
 
         # GK Basic

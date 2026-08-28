@@ -1,16 +1,11 @@
-import requests
 import re
-import time
 from datetime import datetime
 
 from bs4 import BeautifulSoup
-from collections import Counter
 from data_collection.models import *
-from urllib.parse import quote
 from django.db import transaction
 
-
-SLEEP_TIME = 3.5  # Max requests 20 times per min
+from .http import fetch
 
 
 def build_team_urls():
@@ -69,16 +64,12 @@ def extract_player_urls(limit=None):
     for i, team_url in enumerate(team_urls, 1):
         print(f"[{i}/{len(team_urls)}] Requesting: {team_url}")
 
-        try:
-            response = requests.get(team_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.content, "html.parser")
-        except Exception as e:
-            print(f"  - Failed: {str(e).splitlines()[0]}")
-            failed_requests.append((i, team_url, str(e)))
+        response = fetch(team_url)
+        if response is None:
+            print("  - Failed to fetch (fbref may be blocking automated requests)")
+            failed_requests.append((i, team_url, "fetch failed"))
             continue
-
-        time.sleep(SLEEP_TIME)
+        soup = BeautifulSoup(response.content, "html.parser")
 
         player_links = []
         for tag in soup.find_all(['a', 'h2']):
@@ -152,16 +143,11 @@ def populate_player_details():
     for index, player in enumerate(players, 1):
         print(f"[{index}/{total_players}] Scraping: {player.name}")
 
-        try:
-            response = requests.get(player.player_url, timeout=15)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
-        except Exception as e:
-            print(f"  - Failed to fetch page: {e}")
-            time.sleep(SLEEP_TIME)
+        response = fetch(player.player_url)
+        if response is None:
+            print("  - Failed to fetch page (fbref may be blocking automated requests)")
             continue
-
-        time.sleep(SLEEP_TIME)
+        soup = BeautifulSoup(response.text, "html.parser")
 
         match = re.search(r"/en/players/([a-zA-Z0-9]{8})/", player.player_url)
         unique_code = match.group(1) if match else player.unique_code

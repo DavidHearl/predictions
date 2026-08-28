@@ -1,138 +1,193 @@
 {% extends "base.html" %}
 {% load static %}
+{% load prediction_extras %}
+
+{% block title %}My Bets{% endblock %}
 
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/bets.css' %}">
+    <link rel="stylesheet" href="{% static 'css/predictions.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container">
-    <h1>Bets</h1>
-
-    <div class="dashboard-stats">
-        {% for account in accounts %}
-            <div class="stat-card">
-                <div class="stat-label">Starting Balance</div>
-                <div class="stat-value">£{{ account.starting_balance_display|floatformat:2 }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Current Balance</div>
-                <div class="stat-value">£{{ account.current_balance_display|floatformat:2 }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Pending Stake</div>
-                <div class="stat-value">£{{ account.pending_stake|floatformat:2 }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Bets Placed</div>
-                <div class="stat-value">{{ account.bets_placed }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Bets Won</div>
-                <div class="stat-value">{{ account.bets_won }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Bets Lost</div>
-                <div class="stat-value">{{ account.bets_lost }}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Win %</div>
-                <div class="stat-value">{{ account.win_percentage }}%</div>
-            </div>
-            <div class="stat-card {% if account.returns >= 0 %}returns-win{% else %}returns-loss{% endif %}">
-                <div class="stat-label">Returns</div>
-                <div class="stat-value">£{{ account.returns|floatformat:2 }}</div>
-                <div class="stat-label">({{ account.returns_percentage }}%)</div>
-            </div>
-        {% endfor %}
+    <div class="page-head">
+        <div>
+            <h1>My Bets</h1>
+            <div class="page-sub">Track every bet against the model &middot; find candidates on the <a href="{% url 'value_bets' %}">value matrix</a></div>
+        </div>
     </div>
 
-    <form method="post" class="bet-add-form">
-        {% csrf_token %}
-        <div class="filter-group">
-            <label for="account">Account:</label>
-            <select name="account" id="account" required>
-                {% for account in accounts %}
-                    <option value="{{ account.id }}">{{ account.name }}</option>
-                {% endfor %}
-            </select>
+    {% for account in accounts %}
+    <div class="card account-card">
+        <div class="account-card-head">
+            <h2>{{ account.name }}</h2>
+            <div class="account-balance">
+                &pound;{{ account.current_balance_display|floatformat:2 }}
+                <small>available balance</small>
+            </div>
         </div>
-        <div class="filter-group">
-            <label for="home_team">Home Team:</label>
-            <select name="home_team" id="home_team" required>
-                {% for team in teams %}
-                    <option value="{{ team.id }}">{{ team.name }}</option>
-                {% endfor %}
-            </select>
+        <div class="account-stats">
+            <div class="account-stat">
+                <div class="v">&pound;{{ account.starting_balance_display|floatformat:2 }}</div>
+                <div class="l">Starting</div>
+            </div>
+            <div class="account-stat">
+                <div class="v {% if account.returns > 0 %}pos{% elif account.returns < 0 %}neg{% endif %}">
+                    {% if account.returns >= 0 %}+{% endif %}&pound;{{ account.returns|floatformat:2 }}
+                </div>
+                <div class="l">Profit ({{ account.returns_percentage }}%)</div>
+            </div>
+            <div class="account-stat">
+                <div class="v">&pound;{{ account.pending_stake|floatformat:2 }}</div>
+                <div class="l">In play</div>
+            </div>
+            <div class="account-stat">
+                <div class="v">{{ account.bets_placed }}</div>
+                <div class="l">Bets placed</div>
+            </div>
+            <div class="account-stat">
+                <div class="v pos">{{ account.bets_won }}</div>
+                <div class="l">Won</div>
+            </div>
+            <div class="account-stat">
+                <div class="v neg">{{ account.bets_lost }}</div>
+                <div class="l">Lost</div>
+            </div>
+            <div class="account-stat">
+                <div class="v">{{ account.bets_pending }}</div>
+                <div class="l">Pending</div>
+            </div>
+            <div class="account-stat">
+                <div class="v">{{ account.win_percentage }}%</div>
+                <div class="l">Win rate</div>
+            </div>
         </div>
-        <div class="filter-group">
-            <label for="away_team">Away Team:</label>
-            <select name="away_team" id="away_team" required>
-                {% for team in teams %}
-                    <option value="{{ team.id }}">{{ team.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="filter-group">
-            <label for="bet_type">Bet Type:</label>
-            <select name="bet_type" id="bet_type" required>
-                {% for key, label in bets.model.BET_TYPE_CHOICES %}
-                    <option value="{{ key }}">{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="filter-group">
-            <label for="fractional_odds">Fractional Odds:</label>
-            <input type="text" name="fractional_odds" id="fractional_odds" placeholder="e.g. 5/2" required>
-        </div>
-        <div class="filter-group">
-            <label for="stake">Stake:</label>
-            <input type="number" step="0.01" name="stake" id="stake" required>
-        </div>
-        <div class="filter-group">
-            <label for="winnings">Winnings:</label>
-            <input type="number" step="0.01" name="winnings" id="winnings">
-        </div>
-        <div class="filter-group">
-            <label for="bet_result">Result:</label>
-            <select name="bet_result" id="bet_result">
-                <option value="pending">Pending</option>
-                <option value="win">Win</option>
-                <option value="lose">Lose</option>
-            </select>
-        </div>
-        <button type="submit">Add Bet</button>
-    </form>
+    </div>
+    {% empty %}
+    <div class="notice">No betting account yet — create one in the <a href="/admin/data_collection/bettingaccount/add/">admin</a> to start tracking bets.</div>
+    {% endfor %}
+
+    {% if error %}
+        <div class="notice error">{{ error }}</div>
+    {% endif %}
+
+    <div class="card bet-slip" id="bet-slip">
+        <h3>&#127915; Bet slip</h3>
+        <form method="post">
+            {% csrf_token %}
+            <div class="bet-slip-grid">
+                <div class="control">
+                    <label for="account">Account</label>
+                    <select name="account" id="account" required>
+                        {% for account in accounts %}
+                            <option value="{{ account.id }}">{{ account.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="control" style="grid-column: span 2;">
+                    <label for="match">Match</label>
+                    <select name="match" id="match" required>
+                        {% for m in selectable_matches %}
+                            <option value="{{ m.id }}" {% if prefill.match == m.id|stringformat:"s" %}selected{% endif %}>
+                                {{ m.date|date:"D d M H:i" }} — {{ m.home_team.name }} v {{ m.away_team.name }} ({{ m.league.name }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="control">
+                    <label for="bet_type">Bet type</label>
+                    <select name="bet_type" id="bet_type" required>
+                        {% for key, label in bet_type_choices %}
+                            <option value="{{ key }}" {% if prefill.bet_type == key %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="control">
+                    <label for="fractional_odds">Odds (5/2 or 3.5)</label>
+                    <input type="text" name="fractional_odds" id="fractional_odds" placeholder="e.g. 5/2 or 3.50" value="{{ prefill.odds }}" required>
+                </div>
+                <div class="control">
+                    <label for="stake">Stake &pound;</label>
+                    <input type="number" step="0.01" min="0.01" name="stake" id="stake" value="{{ prefill.stake }}" required>
+                </div>
+                <div class="control">
+                    <label for="bet_result">Result</label>
+                    <select name="bet_result" id="bet_result">
+                        <option value="pending">Pending</option>
+                        <option value="win">Win</option>
+                        <option value="lose">Lose</option>
+                    </select>
+                </div>
+                <div class="control">
+                    <label for="winnings">Profit &pound; (auto if blank)</label>
+                    <input type="number" step="0.01" name="winnings" id="winnings">
+                </div>
+                <button type="submit" class="btn btn-primary">Add bet</button>
+            </div>
+            {% if suggested_stake %}
+                <div class="slip-hint">Suggested stake from the value matrix: <strong>&pound;{{ suggested_stake|floatformat:2 }}</strong> (quarter-Kelly of your balance). Adjust to taste.</div>
+            {% else %}
+                <div class="slip-hint">Tip: use the <strong>+ Slip</strong> buttons on the <a href="{% url 'value_bets' %}">value matrix</a> to prefill this form with the model's picks and a suggested stake.</div>
+            {% endif %}
+        </form>
+    </div>
 
     <div class="table-card">
-        <table class="results-table">
+        <div class="table-scroll">
+        <table class="data-table">
             <thead>
                 <tr>
+                    <th>Placed</th>
                     <th>Match</th>
-                    <th>Bet Type</th>
-                    <th>Odds</th>
-                    <th>Stake</th>
-                    <th>Winnings</th>
-                    <th>Result</th>
+                    <th>Bet</th>
+                    <th class="num">Odds</th>
+                    <th class="num">Stake</th>
+                    <th class="num">Returns</th>
+                    <th class="num">P / L</th>
+                    <th class="center">Result</th>
                 </tr>
             </thead>
             <tbody>
                 {% for bet in bets %}
-                <tr class="{% if bet.bet_result == 'win' %}bet-win{% elif bet.bet_result == 'lose' %}bet-lose{% else %}bet-pending{% endif %}">
-                    <td>{{ bet.match }}</td>
-                    <td>{{ bet.get_bet_type_display }}</td>
-                    <td>{{ bet.fractional_odds }}</td>
-                    <td>£{{ bet.stake|floatformat:2 }}</td>
-                    <td>£{{ bet.winnings|floatformat:2 }}</td>
-                    <td>{{ bet.get_bet_result_display }}</td>
+                <tr>
+                    <td class="nowrap muted">{{ bet.placed_at|date:"d M Y"|default:"–" }}</td>
+                    <td>
+                        <div class="fixture-cell">
+                            <a href="{% url 'match_detail' bet.match.id %}">{{ bet.match.home_team.name }} v {{ bet.match.away_team.name }}</a>
+                            <span class="fixture-sub">{{ bet.match.date|date:"D d M H:i" }} &middot; {{ bet.match.league.name }}</span>
+                        </div>
+                    </td>
+                    <td class="strong">{{ bet.get_bet_type_display }}</td>
+                    <td class="num">{{ bet.fractional_odds }}</td>
+                    <td class="num">&pound;{{ bet.stake|floatformat:2 }}</td>
+                    <td class="num muted">
+                        {% if bet.bet_result == 'pending' and bet.potential_return %}&pound;{{ bet.potential_return|floatformat:2 }} <span class="best-odds">poss.</span>
+                        {% elif bet.total_returned %}&pound;{{ bet.total_returned|floatformat:2 }}
+                        {% else %}–{% endif %}
+                    </td>
+                    <td class="num">
+                        {% if bet.bet_result == 'win' %}<span class="profit-pos">+&pound;{{ bet.profit|floatformat:2 }}</span>
+                        {% elif bet.bet_result == 'lose' %}<span class="profit-neg">-&pound;{{ bet.stake|floatformat:2 }}</span>
+                        {% else %}<span class="muted">–</span>{% endif %}
+                    </td>
+                    <td class="center">
+                        {% if bet.bet_result == 'win' %}<span class="badge badge-win">WON</span>
+                        {% elif bet.bet_result == 'lose' %}<span class="badge badge-loss">LOST</span>
+                        {% else %}<span class="badge badge-pending">PENDING</span>{% endif %}
+                    </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="6">No bets found.</td>
-                </tr>
+                <tr><td colspan="8">
+                    <div class="empty-state">
+                        <span class="empty-icon">&#127922;</span>
+                        No bets logged yet — pick something from the <a href="{% url 'value_bets' %}">value matrix</a>.
+                    </div>
+                </td></tr>
                 {% endfor %}
             </tbody>
         </table>
+        </div>
+        <div class="table-note">Pending bets settle automatically once results are imported — run <code>manage.py settle_bets</code>.</div>
     </div>
 </div>
 {% endblock %}

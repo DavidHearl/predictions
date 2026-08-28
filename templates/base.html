@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Football Predictions</title>
+    <title>{% block title %}Football Predictions{% endblock %}</title>
     {% load static %}
     <link rel="icon" href="{% static 'favicon.ico' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
@@ -14,7 +14,7 @@
 <body>
     <nav class="navbar">
         <div class="navbar-container">
-            <span class="navbar-brand">Football Predictions</span>
+            <a href="{% url 'home' %}" class="navbar-brand"><span class="brand-dot"></span>Football Predictions</a>
             <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Open navigation menu" />
             <label for="nav-toggle" class="hamburger" tabindex="0" aria-label="Toggle navigation menu">
                 <span class="hamburger-line"></span>
@@ -23,19 +23,18 @@
             </label>
             <div class="nav-wrapper">
                 <ul class="navbar-nav main-nav">
-                    <li class="nav-item"><a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a></li>
-                    <li class="nav-item"><a href="{% url 'players' %}" class="nav-link {% if request.resolver_match.url_name == 'players' %}active{% endif %}">Players</a></li>
-                    <li class="nav-item"><a href="{% url 'matches' %}" class="nav-link {% if request.resolver_match.url_name == 'matches' %}active{% endif %}">Matches</a></li>
+                    <li class="nav-item"><a href="{% url 'home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">Fixtures</a></li>
+                    <li class="nav-item"><a href="{% url 'value_bets' %}" class="nav-link {% if request.resolver_match.url_name == 'value_bets' %}active{% endif %}">Value Bets</a></li>
+                    <li class="nav-item"><a href="{% url 'bets' %}" class="nav-link {% if request.resolver_match.url_name == 'bets' %}active{% endif %}">My Bets</a></li>
+                    <li class="nav-item"><a href="{% url 'matches' %}" class="nav-link {% if request.resolver_match.url_name == 'matches' or request.resolver_match.url_name == 'match_detail' %}active{% endif %}">Matches</a></li>
+                    <li class="nav-item"><a href="{% url 'teams' %}" class="nav-link {% if request.resolver_match.url_name == 'teams' or request.resolver_match.url_name == 'team_detail' %}active{% endif %}">Teams</a></li>
+                    <li class="nav-item"><a href="{% url 'players' %}" class="nav-link {% if request.resolver_match.url_name == 'players' or request.resolver_match.url_name == 'player_detail' %}active{% endif %}">Players</a></li>
                     <li class="nav-item"><a href="{% url 'shots' %}" class="nav-link {% if request.resolver_match.url_name == 'shots' %}active{% endif %}">Shots</a></li>
-                    <li class="nav-item"><a href="{% url 'teams' %}" class="nav-link {% if request.resolver_match.url_name == 'teams' %}active{% endif %}">Teams</a></li>
-                    <li class="nav-item"><a href="{% url 'bets' %}" class="nav-link {% if request.resolver_match.url_name == 'bets' %}active{% endif %}">Bets</a></li>
                     {% if user.is_superuser %}
                         <li class="nav-item"><a href="{% url 'admin:index' %}" class="nav-link">Admin</a></li>
                     {% endif %}
                 </ul>
-                
-                <div class="nav-divider"></div>
-                
+
                 <ul class="navbar-nav auth-nav">
                     {% if user.is_authenticated %}
                         <li class="nav-item"><a href="{% url 'account_logout' %}" class="nav-link">Logout</a></li>
@@ -48,23 +47,19 @@
         </div>
     </nav>
 
-    {% block content %}
-    {% endblock %}
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        Dixon-Coles model &middot; data from
+        <a href="https://www.football-data.co.uk" target="_blank" rel="noopener">football-data.co.uk</a> &amp;
+        <a href="https://understat.com" target="_blank" rel="noopener">Understat</a>
+        &middot; bet responsibly
+    </footer>
 
     {% block extra_js %}
     {% endblock %}
 </body>
 </html>
-
-<!-- 
-Club seasons
-Leagues
-Match player stats
-Match shots
-Match team stats
-Matchs
-Players
-Predictions
-Seasons
-Teams
--->

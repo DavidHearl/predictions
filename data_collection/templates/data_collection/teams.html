@@ -1,99 +1,115 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block title %}Teams{% endblock %}
+
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/teams.css' %}">
+<style>
+    .teams-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 12px;
+        margin: 16px 0;
+    }
+    .team-card {
+        background: var(--color-surface);
+        border: 1px solid var(--border-color-soft);
+        border-radius: var(--border-radius);
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: var(--transition-default);
+        box-shadow: var(--shadow-1);
+    }
+    .team-card:hover { border-color: var(--color-secondary); transform: translateY(-2px); }
+    .team-card .team-title { font-weight: 700; font-size: 1rem; }
+    .team-card .team-title a { color: var(--color-heading); }
+    .team-card .team-title a:hover { color: var(--color-secondary); }
+    .team-card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 6px; }
+</style>
 {% endblock %}
 
 {% block content %}
-{% if request.user.is_superuser %}
+{% if can_view %}
 <div class="container">
-    <h1>Teams</h1>
-    <div class="team-counts">
-        <span>Total teams: {{ total_count }}</span>
-        {% if selected_league or selected_season or query %}
-            <span> | Filtered: {{ filtered_count }}</span>
-        {% endif %}
+    <div class="page-head">
+        <div>
+            <h1>Teams <span class="count-chip">{{ filtered_count }} of {{ total_count }}</span></h1>
+            <div class="page-sub">Clubs across all imported leagues and seasons.</div>
+        </div>
     </div>
-    
-    <!-- Filter form -->
-    <form method="get" class="team-filter-form">
-        <div class="filter-row">
-            <div class="filter-group search-group">
-                <label for="q">Search:</label>
+
+    <div class="card">
+        <form method="get" class="filter-bar">
+            <div class="control">
+                <label for="q">Search</label>
                 <input type="text" name="q" id="q" value="{{ query }}" placeholder="Team name...">
             </div>
-            
-            <div class="filter-group">
-                <label for="league">League:</label>
+            <div class="control">
+                <label for="league">League</label>
                 <select name="league" id="league">
-                    <option value="">All Leagues</option>
+                    <option value="">All leagues</option>
                     {% for league in leagues %}
-                        <option value="{{ league.id }}" {% if selected_league|floatformat:"0" == league.id|floatformat:"0" %}selected{% endif %}>{{ league.name }}</option>
+                        <option value="{{ league.id }}" {% if selected_league == league.id|stringformat:"s" %}selected{% endif %}>{{ league.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            
-            <div class="filter-group">
-                <label for="season">Season:</label>
+            <div class="control">
+                <label for="season">Season</label>
                 <select name="season" id="season">
-                    <option value="">All Seasons</option>
+                    <option value="">All seasons</option>
                     {% for season in seasons %}
-                        <option value="{{ season.id }}" {% if selected_season|floatformat:"0" == season.id|floatformat:"0" %}selected{% endif %}>{{ season.name }}</option>
+                        <option value="{{ season.id }}" {% if selected_season == season.id|stringformat:"s" %}selected{% endif %}>{{ season.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            
-            <div class="filter-buttons">
-                <button type="submit">Apply Filters</button>
-                <a href="{% url 'teams' %}" class="reset-btn">Reset</a>
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                <a href="{% url 'teams' %}" class="btn btn-ghost">Reset</a>
             </div>
-        </div>
-    </form>
+        </form>
+    </div>
 
-    <!-- Teams grid -->
     <div class="teams-grid">
         {% for team in teams %}
             <div class="team-card">
-                <div class="team-name">
-                    <a href="{% url 'team_detail' team.pk %}">{{ team.name }}</a>
+                <div class="team-title"><a href="{% url 'team_detail' team.pk %}">{{ team.name }}</a></div>
+                <div class="muted" style="font-size: 0.8rem;">
+                    {% with season_count=team.clubseason_set.count %}
+                        {% if season_count > 0 %}{{ season_count }} season{{ season_count|pluralize }} on record{% else %}No seasons on record{% endif %}
+                    {% endwith %}
                 </div>
-                <div class="team-meta">
-                    <div class="team-seasons">
-                        {% with season_count=team.clubseason_set.count %}
-                            {% if season_count > 0 %}
-                                {{ season_count }} season{% if season_count > 1 %}s{% endif %}
-                            {% else %}
-                                No seasons
-                            {% endif %}
-                        {% endwith %}
-                    </div>
-                </div>
-                <div class="team-actions">
-                    <a href="{% url 'team_detail' team.pk %}" class="view-team-btn">View Team</a>
-                    <a href="{% url 'matches' %}?team={{ team.id }}" class="team-matches-btn">Matches</a>
+                <div class="team-card-actions">
+                    <a href="{% url 'team_detail' team.pk %}" class="btn btn-sm">Profile</a>
+                    <a href="{% url 'matches' %}?team={{ team.id }}" class="btn btn-ghost btn-sm">Matches</a>
                 </div>
             </div>
         {% empty %}
-            <div class="no-teams">No teams found matching your criteria.</div>
+            <div class="card empty-state" style="grid-column: 1/-1;">
+                <span class="empty-icon">&#128737;</span>
+                No teams found matching your criteria.
+            </div>
         {% endfor %}
     </div>
-    
-    <!-- Pagination -->
+
     <div class="pagination">
         {% if page_obj.has_previous %}
-            <a href="?league={{ selected_league }}&season={{ selected_season }}&q={{ query }}&page={{ page_obj.previous_page_number }}">Previous</a>
+            <a href="?league={{ selected_league|default:'' }}&season={{ selected_season|default:'' }}&q={{ query }}&page={{ page_obj.previous_page_number }}">&larr; Previous</a>
         {% endif %}
         <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-            <a href="?league={{ selected_league }}&season={{ selected_season }}&q={{ query }}&page={{ page_obj.next_page_number }}">Next</a>
+            <a href="?league={{ selected_league|default:'' }}&season={{ selected_season|default:'' }}&q={{ query }}&page={{ page_obj.next_page_number }}">Next &rarr;</a>
         {% endif %}
     </div>
 </div>
 {% else %}
     <div class="container">
-        <h2>Access Denied</h2>
-        <p>You do not have permission to view this page.</p>
+        <div class="card empty-state">
+            <span class="empty-icon">&#128274;</span>
+            <h2>Access denied</h2>
+            <p>You do not have permission to view this page.</p>
+        </div>
     </div>
 {% endif %}
 {% endblock %}

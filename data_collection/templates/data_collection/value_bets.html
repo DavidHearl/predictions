@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% load static %}
+{% load prediction_extras %}
+
+{% block title %}Value Bet Matrix{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/predictions.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if access_denied %}
+        <div class="card empty-state">
+            <span class="empty-icon">&#128274;</span>
+            <h2>Access denied</h2>
+            <p>You do not have permission to view this page.</p>
+        </div>
+    {% else %}
+
+    <div class="card predictions-toolbar">
+        <div class="toolbar-title">
+            <h2>Value Bet Matrix</h2>
+            <span class="muted">
+                Every priceable market on upcoming fixtures, ranked by model edge over the bookmaker.
+            </span>
+        </div>
+        <form method="get" class="toolbar-controls">
+            <div class="control">
+                <label for="vb-days">Days ahead</label>
+                <select name="days" id="vb-days">
+                    <option value="3" {% if horizon_days == 3 %}selected{% endif %}>3</option>
+                    <option value="7" {% if horizon_days == 7 %}selected{% endif %}>7</option>
+                    <option value="14" {% if horizon_days == 14 %}selected{% endif %}>14</option>
+                    <option value="30" {% if horizon_days == 30 %}selected{% endif %}>30</option>
+                </select>
+            </div>
+            <div class="control">
+                <label for="vb-league">League</label>
+                <select name="league" id="vb-league">
+                    <option value="">All</option>
+                    {% for league in leagues %}
+                        <option value="{{ league.id }}" {% if selected_league == league.id|stringformat:"s" %}selected{% endif %}>{{ league.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="control">
+                <label for="vb-market">Market</label>
+                <select name="market" id="vb-market">
+                    <option value="">All</option>
+                    {% for key, label in market_choices %}
+                        <option value="{{ key }}" {% if selected_market == key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="control">
+                <label for="vb-edge">Min edge</label>
+                <select name="min_edge" id="vb-edge">
+                    <option value="-1" {% if min_edge == -1 %}selected{% endif %}>Show all</option>
+                    <option value="0" {% if min_edge == 0 %}selected{% endif %}>0%+</option>
+                    <option value="0.03" {% if min_edge == 0.03 %}selected{% endif %}>3%+</option>
+                    <option value="0.05" {% if min_edge == 0.05 %}selected{% endif %}>5%+</option>
+                    <option value="0.1" {% if min_edge == 0.1 %}selected{% endif %}>10%+</option>
+                </select>
+            </div>
+            <div class="control">
+                <label for="vb-sort">Sort by</label>
+                <select name="sort" id="vb-sort">
+                    <option value="edge" {% if sort == "edge" %}selected{% endif %}>Edge</option>
+                    <option value="date" {% if sort == "date" %}selected{% endif %}>Kick-off</option>
+                    <option value="prob" {% if sort == "prob" %}selected{% endif %}>Model probability</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Apply</button>
+        </form>
+    </div>
+
+    <div class="stat-strip">
+        <div class="stat-tile">
+            <div class="stat-value">{{ fixtures_covered }}</div>
+            <div class="stat-label">Fixtures priced</div>
+            <div class="stat-sub">next {{ horizon_days }} days</div>
+        </div>
+        <div class="stat-tile tone-win">
+            <div class="stat-value">{{ value_count }}</div>
+            <div class="stat-label">Positive-edge bets</div>
+        </div>
+        <div class="stat-tile {% if strong_count %}tone-win{% endif %}">
+            <div class="stat-value">{{ strong_count }}</div>
+            <div class="stat-label">Strong plays</div>
+            <div class="stat-sub">&ge;6% edge, likely outcome</div>
+        </div>
+        <div class="stat-tile">
+            <div class="stat-value">{% if best_edge %}{{ best_edge|signed_percent }}{% else %}–{% endif %}</div>
+            <div class="stat-label">Best edge</div>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-scroll">
+        <table class="data-table value-table">
+            <thead>
+                <tr>
+                    <th>Kick-off</th>
+                    <th>Fixture</th>
+                    <th>Market</th>
+                    <th class="center">Tier</th>
+                    <th class="num" title="Raw Dixon-Coles model probability">Model</th>
+                    <th class="num" title="Model blended with the de-margined market price — this is what the edge is computed from">Blended</th>
+                    <th class="num" title="Probability implied by the odds (contains the bookmaker margin)">Implied</th>
+                    <th class="num">Odds</th>
+                    <th class="num">Edge</th>
+                    <th class="num" title="Suggested stake as a fraction of bankroll (quarter-Kelly)">&frac14;-Kelly</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr class="{% if row.value %}value-row{% endif %}">
+                    <td class="nowrap muted">{{ row.match.date|date:"D d M H:i" }}</td>
+                    <td>
+                        <div class="fixture-cell">
+                            <a href="{% url 'match_detail' row.match.id %}">
+                                {{ row.match.home_team.name }} v {{ row.match.away_team.name }}
+                            </a>
+                            <span class="fixture-sub">{{ row.match.league.name }}</span>
+                        </div>
+                    </td>
+                    <td class="strong nowrap">{{ row.market }}</td>
+                    <td class="center">
+                        {% if row.tier %}<span class="tier-badge tier-{{ row.tier }}">{{ row.tier }}</span>{% endif %}
+                    </td>
+                    <td class="num">{{ row.model_prob|percent }}</td>
+                    <td class="num strong">{{ row.bet_prob|percent }}</td>
+                    <td class="num muted">{{ row.implied_prob|percent }}</td>
+                    <td class="num">{{ row.odds|floatformat:2 }}{% if row.best_odds %}<span class="muted best-odds" title="Best price seen across bookmakers"> ({{ row.best_odds|floatformat:2 }})</span>{% endif %}</td>
+                    <td class="num">
+                        <span class="edge-badge {% if row.edge > 0 %}edge-pos{% else %}edge-neg{% endif %}">
+                            {{ row.edge|signed_percent }}
+                        </span>
+                    </td>
+                    <td class="num">{% if row.kelly > 0 %}{{ row.kelly|percent:1 }}{% else %}–{% endif %}</td>
+                    <td class="center">
+                        {% if row.value %}
+                        <a class="slip-btn"
+                           href="{% url 'bets' %}?match={{ row.match.id }}&bet_type={{ row.bet_type }}&odds={{ row.odds|floatformat:2 }}&kelly={{ row.kelly }}#bet-slip"
+                           title="Prefill the bet slip with this selection">+ Slip</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="11">
+                    <div class="empty-state">
+                        <span class="empty-icon">&#128200;</span>
+                        No markets match these filters. Try lowering the minimum edge, or run
+                        <code>manage.py update_predictions</code> after importing fresh fixtures.
+                    </div>
+                </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <div class="card muted disclaimer">
+        <strong style="color: var(--color-text);">How to read this:</strong>
+        Edges come from a Dixon-Coles model (last four seasons, time-decayed, xG-blended) whose
+        probabilities are blended 35/65 with the de-margined market price (heavier still for teams
+        with little data); longshots below a 12% blended probability are never flagged as value.
+        <span class="tier-badge tier-strong">strong</span> = &ge;6% edge on a &ge;30% outcome,
+        <span class="tier-badge tier-good">good</span> = &ge;3% edge,
+        <span class="tier-badge tier-slim">slim</span> = positive but within model noise.
+        Walk-forward backtesting shows the model does <em>not</em> beat closing prices on its own —
+        treat rows here as a shortlist for judgement, not free money. Stakes shown are quarter-Kelly;
+        never bet more than you can afford to lose.
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}

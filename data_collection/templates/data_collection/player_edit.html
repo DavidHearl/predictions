@@ -1,49 +1,68 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block title %}Edit {{ player.name }}{% endblock %}
+
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/players.css' %}">
+<style>
+    .player-edit-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 18px; margin-top: 14px; }
+    .player-edit-form .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .player-edit-form label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-text-muted);
+    }
+    .player-edit-form input, .player-edit-form select, .player-edit-form textarea { width: 100%; }
+    .field-help { font-size: 0.74rem; color: var(--color-text-muted); }
+    .field-errors { font-size: 0.78rem; color: var(--color-loss); }
+    .form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+</style>
 {% endblock %}
 
 {% block content %}
-    {% if request.user.is_superuser %}
+    {% if can_view %}
         <div class="container">
-            <div class="card form-card">
-                <h1>{{ player.name }}</h1>
-                
+            <div class="page-head">
+                <div>
+                    <h1>Edit player</h1>
+                    <div class="page-sub">{{ player.name }}</div>
+                </div>
+            </div>
+
+            <div class="card">
                 <form method="post" class="player-edit-form">
                     {% csrf_token %}
-                    
                     {% for field in form %}
                         <div class="form-group">
                             {{ field.label_tag }}
-                            <div class="field-container">
-                                {{ field }}
-                                {% if field.help_text %}
-                                    <div class="field-help">{{ field.help_text }}</div>
-                                {% endif %}
-                                {% if field.errors %}
-                                    <div class="field-errors">
-                                        {% for error in field.errors %}
-                                            {{ error }}
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="field-help">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="field-errors">
+                                    {% for error in field.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
                     {% endfor %}
-                    
+
                     <div class="form-actions">
-                        <a href="{% url 'player_detail' player.pk %}" class="back-link">Cancel</a>
-                        <button type="submit" class="edit-btn">Save Changes</button>
+                        <a href="{% url 'player_detail' player.pk %}" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save changes</button>
                     </div>
                 </form>
             </div>
         </div>
     {% else %}
         <div class="container">
-            <h2>Access Denied</h2>
-            <p>You do not have permission to view this page.</p>
+            <div class="card empty-state">
+                <span class="empty-icon">&#128274;</span>
+                <h2>Access denied</h2>
+                <p>You do not have permission to view this page.</p>
+            </div>
         </div>
     {% endif %}
 {% endblock %}

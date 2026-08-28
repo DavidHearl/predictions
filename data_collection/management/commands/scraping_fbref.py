@@ -25,6 +25,17 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         print("\n=== Starting FBref Scraping Pipeline ===")
 
+        # fbref sits behind aggressive bot protection these days; check before
+        # grinding through hundreds of URLs that will all fail.
+        from data_collection.scraping.http import fetch
+        probe = fetch("https://fbref.com/en/", retries=1)
+        if probe is None:
+            print(
+                "WARNING: fbref.com is not reachable from here (likely a 403 from its "
+                "bot protection). The pipeline will run but most requests may fail.\n"
+                "Results and odds are better sourced via: manage.py import_football_data"
+            )
+
         only_fixtures = options["only_fixtures"]
         from_fixtures = options["from_fixtures"]
         no_process_matches = options["no_process_matches"]

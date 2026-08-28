@@ -17,3 +17,4 @@ __pycache__/
 virtual_environment/
 .venv/
 venv/
+scrape_fixtures_debug.log

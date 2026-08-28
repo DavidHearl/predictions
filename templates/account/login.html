@@ -1,77 +1,15 @@
 {% extends "base.html" %}
 
+{% block title %}Log In{% endblock %}
+
 {% block content %}
-<style>
-    body {
-        background: #181a20;
-        color: #e4e6eb;
-    }
-    .container {
-        max-width: 400px;
-        margin: 60px auto;
-        padding: 32px 24px;
-        background: #23272f;
-        border-radius: 8px;
-        box-shadow: 0 2px 16px rgba(0,0,0,0.32);
-    }
-    h1 {
-        text-align: center;
-        margin-bottom: 24px;
-        font-size: 2rem;
-        color: #e4e6eb;
-    }
-    form {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-    input[type="text"], input[type="password"] {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #444;
-        border-radius: 4px;
-        font-size: 1rem;
-        background: #181a20;
-        color: #e4e6eb;
-    }
-    input[type="text"]:focus, input[type="password"]:focus {
-        border-color: #007bff;
-        outline: none;
-        background: #23272f;
-    }
-    .btn {
-        background: #007bff;
-        color: #fff;
-        border: none;
-        padding: 10px 0;
-        border-radius: 4px;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-    .btn:hover {
-        background: #0056b3;
-    }
-    p {
-        text-align: center;
-        margin-top: 18px;
-        color: #b0b3b8;
-    }
-    a {
-        color: #66aaff;
-        text-decoration: none;
-    }
-    a:hover {
-        text-decoration: underline;
-    }
-</style>
-<div class="container">
-    <h1>Log In</h1>
+<div class="auth-card">
+    <h1>Log in</h1>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit" class="btn">Sign In</button>
+        <button type="submit" class="btn btn-primary">Sign in</button>
     </form>
-    <p>Don't have an account? <a href="{% url 'account_signup' %}">Sign up</a></p>
+    <p class="auth-alt">Don't have an account? <a href="{% url 'account_signup' %}">Sign up</a></p>
 </div>
 {% endblock %}

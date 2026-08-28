@@ -13,6 +13,11 @@ class League(models.Model):
     country = models.CharField(max_length=50)
     league_id = models.PositiveIntegerField()
     number_of_teams = models.PositiveIntegerField(default=20)
+    # Identifiers for the different data sources this league can be pulled from
+    fd_code = models.CharField(max_length=10, blank=True, null=True,
+                               help_text="football-data.co.uk division code, e.g. E0")
+    understat_slug = models.CharField(max_length=50, blank=True, null=True,
+                                      help_text="understat.com league slug, e.g. EPL")
 
     def __str__(self):
         return self.name
@@ -24,6 +29,22 @@ class Team(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class TeamAlias(models.Model):
+    """Alternative names for a team as used by external data sources
+    (e.g. football-data.co.uk calls Manchester United 'Man United')."""
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="aliases")
+    name = models.CharField(max_length=100)
+    source = models.CharField(max_length=30, blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["name", "source"], name="unique_alias_per_source"),
+        ]
+
+    def __str__(self):
+        return f"{self.name} -> {self.team.name}"
 
 
 class ClubSeason(models.Model):
@@ -61,6 +82,8 @@ class Match(models.Model):
     venue = models.CharField(max_length=100, null=True, blank=True)
     home_score = models.PositiveSmallIntegerField(null=True, blank=True)
     away_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    ht_home_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    ht_away_score = models.PositiveSmallIntegerField(null=True, blank=True)
     referee = models.CharField(max_length=100, null=True, blank=True)
     match_url = models.URLField(max_length=300, unique=True, null=True, blank=True)
 
@@ -68,6 +91,16 @@ class Match(models.Model):
     assistant_referee_2 = models.CharField(max_length=100, null=True, blank=True)
     fourth_official = models.CharField(max_length=100, null=True, blank=True)
     var_official = models.CharField(max_length=100, null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["date"]),
+            models.Index(fields=["season", "league"]),
+        ]
+
+    @property
+    def is_played(self):
+        return self.home_score is not None and self.away_score is not None
 
     def __str__(self):
         return f"{self.season} : {self.home_team.name} vs {self.away_team.name}"
@@ -119,6 +152,8 @@ class MatchTeamStat(models.Model):
     goal_kicks = models.PositiveSmallIntegerField(null=True)
     throwins = models.PositiveSmallIntegerField(null=True)
     long_balls = models.PositiveSmallIntegerField(null=True)
+    yellow_cards = models.PositiveSmallIntegerField(null=True)
+    red_cards = models.PositiveSmallIntegerField(null=True)
 
     def __str__(self):
         return f"{self.match} : {'Home' if self.is_home else 'Away'}"
@@ -260,6 +295,41 @@ class MatchPlayerStat(models.Model):
         return f"{self.match} : {self.player.name} ({self.team.name})"
 
 
+class MatchOdds(models.Model):
+    """Bookmaker odds for a match (decimal). One row per match per source.
+    Populated from football-data.co.uk (Bet365 + market max/average)."""
+    match = models.ForeignKey(Match, on_delete=models.CASCADE, related_name="odds")
+    source = models.CharField(max_length=30, default="football-data")
+
+    home_odds = models.FloatField(null=True, blank=True)
+    draw_odds = models.FloatField(null=True, blank=True)
+    away_odds = models.FloatField(null=True, blank=True)
+
+    max_home_odds = models.FloatField(null=True, blank=True)
+    max_draw_odds = models.FloatField(null=True, blank=True)
+    max_away_odds = models.FloatField(null=True, blank=True)
+
+    avg_home_odds = models.FloatField(null=True, blank=True)
+    avg_draw_odds = models.FloatField(null=True, blank=True)
+    avg_away_odds = models.FloatField(null=True, blank=True)
+
+    over25_odds = models.FloatField(null=True, blank=True)
+    under25_odds = models.FloatField(null=True, blank=True)
+    max_over25_odds = models.FloatField(null=True, blank=True)
+    max_under25_odds = models.FloatField(null=True, blank=True)
+
+    is_closing = models.BooleanField(default=False, help_text="True if these are closing odds from a results file")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["match", "source"], name="unique_odds_per_match_source"),
+        ]
+
+    def __str__(self):
+        return f"{self.match} odds ({self.source})"
+
+
 class Prediction(models.Model):
     match = models.OneToOneField(Match, on_delete=models.CASCADE)
     predicted_result = models.CharField(max_length=10)  # 'home', 'draw', 'away'
@@ -267,6 +337,19 @@ class Prediction(models.Model):
     predicted_away_score = models.FloatField()
     model_name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True)
+
+    # Outcome probabilities from the model
+    prob_home = models.FloatField(null=True, blank=True)
+    prob_draw = models.FloatField(null=True, blank=True)
+    prob_away = models.FloatField(null=True, blank=True)
+
+    # Probabilities for the common goals/BTTS markets, e.g.
+    # {"over_2.5": 0.61, "under_2.5": 0.39, "btts_yes": 0.55, ...}
+    market_probs = models.JSONField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Prediction: {self.match}"
 
 
 class BettingAccount(models.Model):
@@ -280,13 +363,17 @@ class BettingAccount(models.Model):
 
 class Bet(models.Model):
     BET_TYPE_CHOICES = [
-        ("over_0.5", "Over 0.5 Goals"),
-        ("over_1.5", "Over 1.5 Goals"),
-        ("under_4.5", "Under 4.5 Goals"),
-        ("under_5.5", "Under 5.5 Goals"),
         ("home_win", "Home Win"),
         ("away_win", "Away Win"),
         ("draw", "Draw"),
+        ("over_0.5", "Over 0.5 Goals"),
+        ("over_1.5", "Over 1.5 Goals"),
+        ("over_2.5", "Over 2.5 Goals"),
+        ("over_3.5", "Over 3.5 Goals"),
+        ("under_2.5", "Under 2.5 Goals"),
+        ("under_3.5", "Under 3.5 Goals"),
+        ("under_4.5", "Under 4.5 Goals"),
+        ("under_5.5", "Under 5.5 Goals"),
         ("btts", "Both Teams To Score"),
         ("other", "Other"),
     ]
@@ -299,6 +386,43 @@ class Bet(models.Model):
     winnings = models.FloatField(null=True, blank=True)
     bet_result = models.CharField(max_length=10, choices=[("win", "Win"), ("lose", "Lose"), ("pending", "Pending")], default="pending")
     notes = models.TextField(blank=True)
+    placed_at = models.DateTimeField(auto_now_add=True, null=True)
+
+    @property
+    def decimal_odds(self):
+        """Convert stored fractional odds ('5/2') or a plain decimal ('3.5') to decimal odds."""
+        text = (self.fractional_odds or "").strip()
+        try:
+            if "/" in text:
+                num, den = text.split("/", 1)
+                return 1.0 + float(num) / float(den)
+            return float(text)
+        except (ValueError, ZeroDivisionError):
+            return None
+
+    @property
+    def potential_return(self):
+        odds = self.decimal_odds
+        if odds is None:
+            return None
+        return round(self.stake * odds, 2)
+
+    @property
+    def profit(self):
+        """Realised profit/loss for settled bets. `winnings` is stored as net profit
+        (the amount won on top of the returned stake), matching the balance maths."""
+        if self.bet_result == "win" and self.winnings is not None:
+            return round(float(self.winnings), 2)
+        if self.bet_result == "lose":
+            return -self.stake
+        return 0.0
+
+    @property
+    def total_returned(self):
+        """Cash returned on a won bet (profit + stake back)."""
+        if self.bet_result == "win" and self.winnings is not None:
+            return round(float(self.winnings) + self.stake, 2)
+        return None
 
     def __str__(self):
         return f"{self.match.home_team.name} vs {self.match.away_team.name}: {self.get_bet_type_display()} ({self.bet_result})"

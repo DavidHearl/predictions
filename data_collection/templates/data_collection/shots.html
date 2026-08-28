@@ -1,184 +1,176 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block title %}Shots{% endblock %}
+
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/shots.css' %}">
+    <link rel="stylesheet" href="{% static 'css/predictions.css' %}">
 {% endblock %}
 
 {% block content %}
-{% if request.user.is_superuser %}
+{% if can_view %}
 <div class="container">
-    <h1>Shot Statistics</h1>
-    <div class="shot-counts">
-        <span>Total shots: {{ total_count }}</span>
-        {% if selected_team or selected_player or selected_match or selected_season or selected_outcome or min_xg or max_distance %}
-            <span> | Filtered: {{ filtered_count }}</span>
-        {% endif %}
-    </div>
-    
-    <!-- Key stats summary -->
-    <div class="key-stats">
-        <div class="stat-card">
-            <div class="stat-value">{{ stats.total_shots|default:"0" }}</div>
-            <div class="stat-label">Total Shots</div>
+    <div class="page-head">
+        <div>
+            <h1>Shot Statistics <span class="count-chip">{{ filtered_count }} of {{ total_count }}</span></h1>
+            <div class="page-sub">Shot-level xG data scraped from FBref match pages.</div>
         </div>
-        <div class="stat-card">
+    </div>
+
+    <div class="stat-strip">
+        <div class="stat-tile">
+            <div class="stat-value">{{ stats.total_shots|default:"0" }}</div>
+            <div class="stat-label">Shots</div>
+        </div>
+        <div class="stat-tile tone-win">
             <div class="stat-value">{{ stats.goals|default:"0" }}</div>
             <div class="stat-label">Goals</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value">{{ stats.avg_xg|floatformat:3|default:"0.000" }}</div>
-            <div class="stat-label">Avg xG</div>
+        <div class="stat-tile">
+            <div class="stat-value">{{ stats.avg_xg|floatformat:3|default:"–" }}</div>
+            <div class="stat-label">Avg xG / shot</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value">{{ stats.total_xg|floatformat:2|default:"0.00" }}</div>
+        <div class="stat-tile">
+            <div class="stat-value">{{ stats.total_xg|floatformat:1|default:"–" }}</div>
             <div class="stat-label">Total xG</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value">{{ stats.avg_distance|floatformat:1|default:"0.0" }}m</div>
-            <div class="stat-label">Avg Distance</div>
+        <div class="stat-tile">
+            <div class="stat-value">{% if stats.avg_distance %}{{ stats.avg_distance|floatformat:1 }}m{% else %}–{% endif %}</div>
+            <div class="stat-label">Avg distance</div>
         </div>
         {% if stats.conversion_rate %}
-        <div class="stat-card">
+        <div class="stat-tile">
             <div class="stat-value">{{ stats.conversion_rate|floatformat:1 }}%</div>
             <div class="stat-label">Conversion</div>
         </div>
         {% endif %}
     </div>
-    
-    <!-- Filter form -->
-    <form method="get" class="shot-filter-form">
-        <h3>Filter Shots</h3>
-        <div class="filter-row">
-            <div class="filter-group">
-                <label for="team">Team:</label>
+
+    <div class="card">
+        <form method="get" class="filter-bar">
+            <div class="control">
+                <label for="team">Team</label>
                 <select name="team" id="team">
-                    <option value="">All Teams</option>
+                    <option value="">All teams</option>
                     {% for team in teams %}
-                        <option value="{{ team.id }}" {% if selected_team|floatformat:"0" == team.id|floatformat:"0" %}selected{% endif %}>{{ team.name }}</option>
+                        <option value="{{ team.id }}" {% if selected_team == team.id|stringformat:"s" %}selected{% endif %}>{{ team.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            
-            <div class="filter-group">
-                <label for="player">Player:</label>
+            <div class="control">
+                <label for="player">Player</label>
                 <select name="player" id="player">
-                    <option value="">All Players</option>
+                    <option value="">All players</option>
                     {% for player in players %}
-                        <option value="{{ player.id }}" {% if selected_player|floatformat:"0" == player.id|floatformat:"0" %}selected{% endif %}>{{ player.name }}</option>
+                        <option value="{{ player.id }}" {% if selected_player == player.id|stringformat:"s" %}selected{% endif %}>{{ player.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            
-            <div class="filter-group">
-                <label for="season">Season:</label>
+            <div class="control">
+                <label for="season">Season</label>
                 <select name="season" id="season">
-                    <option value="">All Seasons</option>
+                    <option value="">All seasons</option>
                     {% for season in seasons %}
-                        <option value="{{ season.id }}" {% if selected_season|floatformat:"0" == season.id|floatformat:"0" %}selected{% endif %}>{{ season.name }}</option>
+                        <option value="{{ season.id }}" {% if selected_season == season.id|stringformat:"s" %}selected{% endif %}>{{ season.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-        </div>
-        
-        <div class="filter-row">
-            <div class="filter-group">
-                <label for="outcome">Outcome:</label>
+            <div class="control">
+                <label for="outcome">Outcome</label>
                 <select name="outcome" id="outcome">
-                    <option value="">All Outcomes</option>
+                    <option value="">All outcomes</option>
                     {% for outcome_choice in outcome_choices %}
                         <option value="{{ outcome_choice }}" {% if selected_outcome == outcome_choice %}selected{% endif %}>{{ outcome_choice }}</option>
                     {% endfor %}
                 </select>
             </div>
-            
-            <div class="filter-group">
-                <label for="min_xg">Min xG:</label>
-                <input type="number" name="min_xg" id="min_xg" value="{{ min_xg }}" step="0.01" min="0" max="1">
+            <div class="control">
+                <label for="min_xg">Min xG</label>
+                <input type="number" name="min_xg" id="min_xg" value="{{ min_xg|default:'' }}" step="0.01" min="0" max="1" style="min-width: 90px;">
             </div>
-            
-            <div class="filter-group">
-                <label for="max_distance">Max Distance (m):</label>
-                <input type="number" name="max_distance" id="max_distance" value="{{ max_distance }}" step="0.1" min="0">
+            <div class="control">
+                <label for="max_distance">Max dist (m)</label>
+                <input type="number" name="max_distance" id="max_distance" value="{{ max_distance|default:'' }}" step="0.1" min="0" style="min-width: 90px;">
             </div>
-            
-            <div class="filter-buttons">
-                <button type="submit">Apply Filters</button>
-                <a href="{% url 'shots' %}" class="reset-btn">Reset</a>
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">Apply</button>
+                <a href="{% url 'shots' %}" class="btn btn-ghost">Reset</a>
             </div>
-        </div>
-    </form>
-
-    <!-- Shots table -->
-    <div class="shots-container">
-        {% if shots %}
-            <table class="shots-table">
-                <thead>
-                    <tr>
-                        <th>Match</th>
-                        <th>Minute</th>
-                        <th>Player</th>
-                        <th>Team</th>
-                        <th>Outcome</th>
-                        <th>xG</th>
-                        <th>Distance</th>
-                        <th>Body Part</th>
-                        <th>Assisted By</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for shot in shots %}
-                        <tr class="{% if shot.outcome == 'Goal' %}goal-shot{% endif %}">
-                            <td>
-                                <a href="{% url 'match_detail' shot.match.pk %}">
-                                    {{ shot.match.home_team.name }} vs {{ shot.match.away_team.name }}
-                                </a>
-                                <div class="match-date">{{ shot.match.date|date:"M d, Y" }}</div>
-                            </td>
-                            <td>{{ shot.minute }}'</td>
-                            <td>
-                                {% if shot.player %}
-                                    <a href="{% url 'player_detail' shot.player.pk %}">{{ shot.player.name }}</a>
-                                {% else %}
-                                    Unknown
-                                {% endif %}
-                            </td>
-                            <td>{{ shot.team.name }}</td>
-                            <td class="shot-outcome">{{ shot.outcome|default:"-" }}</td>
-                            <td class="shot-xg">{{ shot.expected_goals|floatformat:3 }}</td>
-                            <td>{{ shot.distance|floatformat:1 }}m</td>
-                            <td>{{ shot.body_part|default:"-" }}</td>
-                            <td>
-                                {% if shot.assisted_by %}
-                                    <a href="{% url 'player_detail' shot.assisted_by.pk %}">{{ shot.assisted_by.name }}</a>
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div class="no-shots">No shots found matching your criteria.</div>
-        {% endif %}
+        </form>
     </div>
-    
-    <!-- Pagination -->
-    <div class="pagination">
-        {% if page_obj.has_previous %}
-            <a href="?team={{ selected_team }}&player={{ selected_player }}&season={{ selected_season }}&outcome={{ selected_outcome }}&min_xg={{ min_xg }}&max_distance={{ max_distance }}&page={{ page_obj.previous_page_number }}">Previous</a>
-        {% endif %}
-        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}
-            <a href="?team={{ selected_team }}&player={{ selected_player }}&season={{ selected_season }}&outcome={{ selected_outcome }}&min_xg={{ min_xg }}&max_distance={{ max_distance }}&page={{ page_obj.next_page_number }}">Next</a>
-        {% endif %}
+
+    <div class="table-card">
+        <div class="table-scroll">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Match</th>
+                    <th class="num">Min</th>
+                    <th>Player</th>
+                    <th class="hide-mobile">Team</th>
+                    <th>Outcome</th>
+                    <th class="num">xG</th>
+                    <th class="num hide-mobile">Distance</th>
+                    <th class="hide-mobile">Body part</th>
+                    <th class="hide-mobile">Assisted by</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for shot in shots %}
+                    <tr class="{% if shot.outcome == 'Goal' %}goal-row{% endif %}">
+                        <td>
+                            <div class="fixture-cell">
+                                <a href="{% url 'match_detail' shot.match.pk %}">{{ shot.match.home_team.name }} v {{ shot.match.away_team.name }}</a>
+                                <span class="fixture-sub">{{ shot.match.date|date:"d M Y" }}</span>
+                            </div>
+                        </td>
+                        <td class="num">{{ shot.minute }}'</td>
+                        <td>
+                            {% if shot.player %}
+                                <a href="{% url 'player_detail' shot.player.pk %}">{{ shot.player.name }}</a>
+                            {% else %}<span class="muted">Unknown</span>{% endif %}
+                        </td>
+                        <td class="hide-mobile">{{ shot.team.name }}</td>
+                        <td class="shot-outcome">{{ shot.outcome|default:"-" }}</td>
+                        <td class="num">{{ shot.expected_goals|floatformat:3 }}</td>
+                        <td class="num hide-mobile">{{ shot.distance|floatformat:1 }}m</td>
+                        <td class="hide-mobile">{{ shot.body_part|default:"-" }}</td>
+                        <td class="hide-mobile">
+                            {% if shot.assisted_by %}
+                                <a href="{% url 'player_detail' shot.assisted_by.pk %}">{{ shot.assisted_by.name }}</a>
+                            {% else %}<span class="muted">-</span>{% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="9">
+                        <div class="empty-state">
+                            <span class="empty-icon">&#127919;</span>
+                            No shots found matching your criteria.
+                        </div>
+                    </td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        <div class="pagination">
+            {% if page_obj.has_previous %}
+                <a href="?team={{ selected_team|default:'' }}&player={{ selected_player|default:'' }}&season={{ selected_season|default:'' }}&outcome={{ selected_outcome|default:'' }}&min_xg={{ min_xg|default:'' }}&max_distance={{ max_distance|default:'' }}&page={{ page_obj.previous_page_number }}">&larr; Previous</a>
+            {% endif %}
+            <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+                <a href="?team={{ selected_team|default:'' }}&player={{ selected_player|default:'' }}&season={{ selected_season|default:'' }}&outcome={{ selected_outcome|default:'' }}&min_xg={{ min_xg|default:'' }}&max_distance={{ max_distance|default:'' }}&page={{ page_obj.next_page_number }}">Next &rarr;</a>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% else %}
     <div class="container">
-        <h2>Access Denied</h2>
-        <p>You do not have permission to view this page.</p>
+        <div class="card empty-state">
+            <span class="empty-icon">&#128274;</span>
+            <h2>Access denied</h2>
+            <p>You do not have permission to view this page.</p>
+        </div>
     </div>
 {% endif %}
 {% endblock %}

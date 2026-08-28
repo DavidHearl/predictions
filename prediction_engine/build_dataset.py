@@ -29,21 +29,27 @@ def build_dataset(n_matches=5):
         if idx % 100 == 0:
             print(f"Processing match {idx + 1} of {total_matches}...")
 
+        def avg_or_none(values):
+            """Average of the non-missing values; None when a stat was never recorded.
+            (Using `or 0` here poisoned the features - a missing stat became a 0.)"""
+            present = [v for v in values if v is not None]
+            return sum(present) / len(present) if present else None
+
         def get_recent_stats(team_id, before_date, is_home):
             stats = stats_by_team[(team_id, is_home)]
             recent = [s for s in stats if s.match.date < before_date][-n_matches:]
-            if not recent:
+            if len(recent) < 3:  # not enough form to be meaningful
                 return None
             return {
-                "xg": sum([s.expected_goals or 0 for s in recent]) / len(recent),
-                "xga": sum([s.expected_goals_against or 0 for s in recent]) / len(recent),
-                "pass_acc": sum([s.passing_accuracy or 0 for s in recent]) / len(recent),
-                "possession": sum([s.possession or 0 for s in recent]) / len(recent),
-                "shots": sum([s.total_shots or 0 for s in recent]) / len(recent),
-                "shots_on_target": sum([s.shots_on_target or 0 for s in recent]) / len(recent),
-                "saves": sum([s.saves or 0 for s in recent]) / len(recent),
-                "fouls": sum([s.fouls or 0 for s in recent]) / len(recent),
-                "tackles": sum([s.tackles or 0 for s in recent]) / len(recent),
+                "xg": avg_or_none([s.expected_goals for s in recent]),
+                "xga": avg_or_none([s.expected_goals_against for s in recent]),
+                "pass_acc": avg_or_none([s.passing_accuracy for s in recent]),
+                "possession": avg_or_none([s.possession for s in recent]),
+                "shots": avg_or_none([s.total_shots for s in recent]),
+                "shots_on_target": avg_or_none([s.shots_on_target for s in recent]),
+                "saves": avg_or_none([s.saves for s in recent]),
+                "fouls": avg_or_none([s.fouls for s in recent]),
+                "tackles": avg_or_none([s.tackles for s in recent]),
             }
 
         home_form = get_recent_stats(match.home_team_id, match.date, is_home=True)
@@ -82,7 +88,8 @@ def build_dataset(n_matches=5):
             "away_tackles": away_form["tackles"],
 
             "result": result_label(match.home_score, match.away_score),
-            "total_goals": match.home_score + match.away_score  # ✅ for goal model
+            "total_goals": match.home_score + match.away_score,  # for the goals model
+            "match_date": match.date,  # kept so trainers can split by time, dropped before fitting
         }
 
         rows.append(row)

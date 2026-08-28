@@ -1,176 +1,200 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block title %}{{ team.name }}{% endblock %}
+
 {% block extra_css %}
-    <link rel="stylesheet" href="{% static 'css/team_detail.css' %}">
+    <link rel="stylesheet" href="{% static 'css/predictions.css' %}">
+<style>
+    .record-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .record-chip {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 6px;
+        background: var(--color-bg);
+        border: 1px solid var(--border-color-soft);
+        border-radius: var(--radius-sm);
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+    }
+    .record-chip b { font-size: 1.05rem; color: var(--color-heading); font-variant-numeric: tabular-nums; }
+    .record-chip.w b { color: var(--color-win); }
+    .record-chip.l b { color: var(--color-loss); }
+    .season-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .season-chip {
+        background: var(--color-bg);
+        border: 1px solid var(--border-color-soft);
+        border-radius: var(--radius-sm);
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+    .season-chip b { color: var(--color-heading); }
+    .season-chip span { color: var(--color-text-muted); }
+    .result-list { display: flex; flex-direction: column; }
+    .result-row {
+        display: grid;
+        grid-template-columns: 96px 1fr auto 1fr auto;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 4px;
+        border-top: 1px solid var(--border-color-soft);
+        font-size: 0.88rem;
+    }
+    .result-row:first-child { border-top: none; }
+    .result-row .r-home { text-align: right; }
+    .result-row .r-away { text-align: left; }
+    .result-row .active-team { font-weight: 700; color: var(--color-heading); }
+    .players-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
+    .player-pill {
+        background: var(--color-bg);
+        border: 1px solid var(--border-color-soft);
+        border-radius: var(--radius-pill);
+        padding: 4px 12px;
+        font-size: 0.8rem;
+    }
+    .player-pill a { color: var(--color-text); }
+    .player-pill:hover { border-color: var(--color-secondary); }
+    @media (max-width: 720px) {
+        .result-row { grid-template-columns: 70px 1fr auto 1fr; }
+        .result-row .r-action { display: none; }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-{% if request.user.is_superuser %}
+{% if can_view %}
 <div class="container">
-    <div class="team-header">
-        <h1>{{ team.name }}</h1>
-        <div class="team-meta">
-            {% if team.country %}
-                <div class="team-country">{{ team.country }}</div>
-            {% endif %}
-            <div class="team-id">ID: {{ team.id }}</div>
+    <div class="page-head">
+        <div>
+            <h1>{{ team.name }}</h1>
+            <div class="page-sub">Last {{ record.played }} completed matches</div>
+        </div>
+        <div class="record-chips">
+            <div class="record-chip w"><b>{{ record.wins }}</b> W</div>
+            <div class="record-chip"><b>{{ record.draws }}</b> D</div>
+            <div class="record-chip l"><b>{{ record.losses }}</b> L</div>
         </div>
     </div>
-    
-    <!-- Team seasons -->
-    <div class="section-header">
-        <h2>Seasons</h2>
-    </div>
-    <div class="seasons-container">
-        {% if team_seasons %}
-            <div class="seasons-grid">
-                {% for club_season in team_seasons %}
-                    <div class="season-card">
-                        <div class="season-name">{{ club_season.season.name }}</div>
-                        <div class="season-league">{{ club_season.season.league.name }}</div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="no-data">No season data available</div>
+
+    {% if avg_stats %}
+    <div class="stat-strip">
+        {% if avg_stats.expected_goals %}
+        <div class="stat-tile tone-blue">
+            <div class="stat-value">{{ avg_stats.expected_goals|floatformat:2 }}</div>
+            <div class="stat-label">xG per game</div>
+        </div>
+        {% endif %}
+        {% if avg_stats.expected_goals_against %}
+        <div class="stat-tile">
+            <div class="stat-value">{{ avg_stats.expected_goals_against|floatformat:2 }}</div>
+            <div class="stat-label">xG against</div>
+        </div>
+        {% endif %}
+        {% if avg_stats.total_shots %}
+        <div class="stat-tile">
+            <div class="stat-value">{{ avg_stats.total_shots|floatformat:1 }}</div>
+            <div class="stat-label">Shots / game</div>
+        </div>
+        {% endif %}
+        {% if avg_stats.shots_on_target %}
+        <div class="stat-tile">
+            <div class="stat-value">{{ avg_stats.shots_on_target|floatformat:1 }}</div>
+            <div class="stat-label">On target</div>
+        </div>
+        {% endif %}
+        {% if avg_stats.possession %}
+        <div class="stat-tile">
+            <div class="stat-value">{{ avg_stats.possession|floatformat:0 }}%</div>
+            <div class="stat-label">Possession</div>
+        </div>
+        {% endif %}
+        {% if avg_stats.passing_accuracy %}
+        <div class="stat-tile">
+            <div class="stat-value">{{ avg_stats.passing_accuracy|floatformat:0 }}%</div>
+            <div class="stat-label">Pass accuracy</div>
+        </div>
+        {% endif %}
+        {% if avg_stats.corners %}
+        <div class="stat-tile">
+            <div class="stat-value">{{ avg_stats.corners|floatformat:1 }}</div>
+            <div class="stat-label">Corners / game</div>
+        </div>
+        {% endif %}
+        {% if avg_stats.fouls %}
+        <div class="stat-tile">
+            <div class="stat-value">{{ avg_stats.fouls|floatformat:1 }}</div>
+            <div class="stat-label">Fouls / game</div>
+        </div>
+        {% endif %}
+        {% if avg_stats.yellow_cards %}
+        <div class="stat-tile tone-amber">
+            <div class="stat-value">{{ avg_stats.yellow_cards|floatformat:1 }}</div>
+            <div class="stat-label">Yellows / game</div>
+        </div>
         {% endif %}
     </div>
-    
-    <!-- Team stats -->
-    <div class="section-header">
-        <h2>Average Statistics</h2>
-        <span class="section-info">(from recent matches)</span>
-    </div>
-    <div class="stats-container">
-        {% if avg_stats %}
-            <div class="stats-grid">
-                {% if avg_stats.possession %}
-                <div class="stat-card">
-                    <div class="stat-value">{{ avg_stats.possession|floatformat:1 }}%</div>
-                    <div class="stat-label">Possession</div>
-                </div>
-                {% endif %}
-                
-                {% if avg_stats.total_shots %}
-                <div class="stat-card">
-                    <div class="stat-value">{{ avg_stats.total_shots|floatformat:1 }}</div>
-                    <div class="stat-label">Shots per Game</div>
-                </div>
-                {% endif %}
-                
-                {% if avg_stats.shots_on_target %}
-                <div class="stat-card">
-                    <div class="stat-value">{{ avg_stats.shots_on_target|floatformat:1 }}</div>
-                    <div class="stat-label">Shots on Target</div>
-                </div>
-                {% endif %}
-                
-                {% if avg_stats.pass_accuracy %}
-                <div class="stat-card">
-                    <div class="stat-value">{{ avg_stats.pass_accuracy|floatformat:1 }}%</div>
-                    <div class="stat-label">Pass Accuracy</div>
-                </div>
-                {% endif %}
-                
-                {% if avg_stats.passes %}
-                <div class="stat-card">
-                    <div class="stat-value">{{ avg_stats.passes|floatformat:0 }}</div>
-                    <div class="stat-label">Passes per Game</div>
-                </div>
-                {% endif %}
-                
-                {% if avg_stats.goals %}
-                <div class="stat-card">
-                    <div class="stat-value">{{ avg_stats.goals|floatformat:1 }}</div>
-                    <div class="stat-label">Goals per Game</div>
-                </div>
-                {% endif %}
-                
-                {% if avg_stats.corners %}
-                <div class="stat-card">
-                    <div class="stat-value">{{ avg_stats.corners|floatformat:1 }}</div>
-                    <div class="stat-label">Corners per Game</div>
-                </div>
-                {% endif %}
-                
-                {% if avg_stats.fouls %}
-                <div class="stat-card">
-                    <div class="stat-value">{{ avg_stats.fouls|floatformat:1 }}</div>
-                    <div class="stat-label">Fouls per Game</div>
-                </div>
-                {% endif %}
-            </div>
-        {% else %}
-            <div class="no-data">No statistics available</div>
-        {% endif %}
-    </div>
-    
-    <!-- Recent matches -->
-    <div class="section-header">
-        <h2>Recent Matches</h2>
-    </div>
-    <div class="recent-matches">
-        {% if recent_matches %}
+    {% endif %}
+
+    <div class="card">
+        <h2>Recent matches</h2>
+        <div class="result-list" style="margin-top: 10px;">
             {% for match in recent_matches %}
-                <div class="match-card">
-                    <div class="match-date">{{ match.date|date:"M d, Y" }}</div>
-                    <div class="match-teams">
-                        <div class="team home-team {% if match.home_team == team %}active-team{% endif %}">
-                            {{ match.home_team.name }}
-                        </div>
-                        <div class="match-score">
-                            {% if match.home_score is not None and match.away_score is not None %}
-                                {{ match.home_score }} - {{ match.away_score }}
-                            {% else %}
-                                vs
-                            {% endif %}
-                        </div>
-                        <div class="team away-team {% if match.away_team == team %}active-team{% endif %}">
-                            {{ match.away_team.name }}
-                        </div>
-                    </div>
-                    <div class="match-league">
-                        {{ match.league.name }}
-                    </div>
-                    <div class="match-actions">
-                        <a href="{% url 'match_detail' match.pk %}" class="match-link">View Match</a>
-                    </div>
-                </div>
-            {% endfor %}
-        {% else %}
-            <div class="no-data">No recent matches found</div>
-        {% endif %}
-    </div>
-    
-    <!-- Team Players -->
-    <div class="section-header">
-        <h2>Players</h2>
-    </div>
-    <div class="players-container">
-        {% if players %}
-            <div class="players-grid">
-                {% for player in players %}
-                    <div class="player-card">
-                        <div class="player-name">
-                            <a href="{% url 'player_detail' player.pk %}">{{ player.name }}</a>
-                        </div>
-                    </div>
-                {% endfor %}
+            <div class="result-row">
+                <span class="muted nowrap">{{ match.date|date:"d M y" }}</span>
+                <span class="r-home {% if match.home_team == team %}active-team{% endif %}">{{ match.home_team.name }}</span>
+                <a href="{% url 'match_detail' match.pk %}">
+                    {% if match.is_played %}
+                        {% if match.home_score == match.away_score %}<span class="result-dot draw"></span>
+                        {% elif match.home_team == team and match.home_score > match.away_score or match.away_team == team and match.away_score > match.home_score %}<span class="result-dot win"></span>
+                        {% else %}<span class="result-dot loss"></span>{% endif %}
+                        <span class="score-pill">{{ match.home_score }}–{{ match.away_score }}</span>
+                    {% else %}
+                        <span class="score-pill upcoming">{{ match.date|time:"H:i" }}</span>
+                    {% endif %}
+                </a>
+                <span class="r-away {% if match.away_team == team %}active-team{% endif %}">{{ match.away_team.name }}</span>
+                <a href="{% url 'match_detail' match.pk %}" class="btn btn-ghost btn-sm r-action">View</a>
             </div>
-        {% else %}
-            <div class="no-data">No player data available</div>
-        {% endif %}
+            {% empty %}
+            <div class="empty-state">No recent matches found.</div>
+            {% endfor %}
+        </div>
     </div>
-    
-    <div class="back-link">
-        <a href="{% url 'teams' %}">Back to Teams List</a>
+
+    <div class="card">
+        <h2>Seasons</h2>
+        <div class="season-chips" style="margin-top: 10px;">
+            {% for club_season in team_seasons %}
+                <div class="season-chip"><b>{{ club_season.season.name }}</b> <span>&middot; {{ club_season.league.name }}</span></div>
+            {% empty %}
+                <span class="muted">No season data available.</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if players %}
+    <div class="card">
+        <h2>Players</h2>
+        <div class="players-cloud" style="margin-top: 10px;">
+            {% for player in players %}
+                <span class="player-pill"><a href="{% url 'player_detail' player.pk %}">{{ player.name }}</a></span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div style="margin: 18px 0;">
+        <a href="{% url 'teams' %}" class="btn btn-ghost">&larr; Back to teams</a>
     </div>
 </div>
 {% else %}
     <div class="container">
-        <h2>Access Denied</h2>
-        <p>You do not have permission to view this page.</p>
+        <div class="card empty-state">
+            <span class="empty-icon">&#128274;</span>
+            <h2>Access denied</h2>
+            <p>You do not have permission to view this page.</p>
+        </div>
     </div>
 {% endif %}
 {% endblock %}
